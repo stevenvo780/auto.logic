@@ -40,6 +40,11 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
   });
 
   if (splittingMatches.length === 0) {
+    const coordinatedClauses = splitBySimpleCoordinators(sentence, allMatches);
+    if (coordinatedClauses.length > 1) {
+      return normalizeClauses(coordinatedClauses);
+    }
+
     // Sin marcadores que dividan: intentar dividir por comas significativas
     // Pero anotar los marcadores encontrados en la cláusula resultante
     const commaClauses = splitByCommas(sentence);
@@ -353,7 +358,7 @@ function normalizeClauses(clauses: Clause[]): Clause[] {
       marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
     ));
 
-    if (!currentLooksLikeClause && next) {
+    if (!currentLooksLikeClause && next && current.markers.length === 0) {
       const connectorMarkers = next.markers.filter(marker =>
         marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
       );
@@ -400,13 +405,20 @@ function isVerbLikeToken(token: string): boolean {
     'es', 'son', 'era', 'eran', 'fue', 'fueron', 'sea', 'sean',
     'está', 'están', 'estaba', 'estaban', 'esté', 'estén',
     'hay', 'ha', 'han', 'había', 'habían', 'hubo', 'hubieron',
+    'tiene', 'tienen',
     'sabe', 'saben', 'sabemos', 'conoce', 'conocen', 'ignora', 'ignoran',
     'debe', 'deben', 'puede', 'pueden', 'paga', 'pagó', 'pagan',
     'recibe', 'reciben', 'puede', 'pueden', 'entra', 'entran',
     'vuelve', 'vuelven', 'pasa', 'pasan', 'detecta', 'detectan',
     'registra', 'registra', 'permanece', 'permanece', 'comienza', 'continúa',
     'termina', 'ocurre', 'completa', 'conserva', 'invalide', 'dirigirse',
-    'leer', 'leído', 'oyen', 'observan', 'queda', 'establecida'
+    'leer', 'leído', 'oyen', 'observan', 'queda', 'establecida',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'will', 'would',
+    'have', 'has', 'had', 'do', 'does', 'did', 'can', 'could', 'may', 'might', 'must',
+    'study', 'studies', 'continue', 'continues', 'pass', 'passes', 'passing',
+    'rain', 'rains', 'grow', 'grows', 'increase', 'increases', 'rise', 'rises',
+    'prosper', 'prospers', 'improve', 'improves', 'find', 'finds', 'protect', 'protects',
+    'obey', 'obeys', 'activate', 'activates', 'respond', 'responds', 'register', 'registers'
   ]);
 
   if (commonVerbs.has(token)) return true;
@@ -436,6 +448,54 @@ function splitByCommas(sentence: string): Clause[] {
     markers: [],
     index,
   }));
+}
+
+function splitBySimpleCoordinators(sentence: string, allMatches: MarkerMatch[]): Clause[] {
+  for (const connector of [
+    { text: ' y ', role: 'and' as const },
+    { text: ' o ', role: 'or' as const },
+  ]) {
+    const index = sentence.toLowerCase().indexOf(connector.text);
+    if (index === -1) continue;
+
+    const left = cleanClauseText(sentence.slice(0, index));
+    const right = cleanClauseText(sentence.slice(index + connector.text.length));
+
+    if (!left || !right) continue;
+    if (!looksClauseLike(stripClauseLead(left)) || !looksClauseLike(stripClauseLead(right))) continue;
+
+    const rightMarkers = allMatches
+      .filter(match => match.startPos >= index)
+      .map(match => ({
+        text: match.marker.text,
+        role: match.marker.role,
+        position: match.startPos,
+      }));
+
+    return [
+      {
+        text: left,
+        markers: allMatches
+          .filter(match => match.startPos < index)
+          .map(match => ({
+            text: match.marker.text,
+            role: match.marker.role,
+            position: match.startPos,
+          })),
+        index: 0,
+      },
+      {
+        text: right,
+        markers: [
+          { text: connector.text.trim(), role: connector.role, position: index },
+          ...rightMarkers,
+        ],
+        index: 1,
+      },
+    ];
+  }
+
+  return [];
 }
 
 /**

@@ -29,7 +29,11 @@ export function detectPatterns(sentences: AnalyzedSentence[]): ArgumentPattern[]
   if (conditionals.length > 0 && (assertions.length > 0 || conclusions.length > 0)) {
     // Verificar que haya al menos una oración no-condicional
     const nonConditionals = sentences.filter(s => s.type !== 'conditional');
-    if (nonConditionals.length > 0) {
+    const premiseRichConditional = conditionals.some(sentence =>
+      sentence.clauses.some(clause => clause.role === 'premise' || clause.role === 'assertion')
+    );
+
+    if (nonConditionals.length > 0 || premiseRichConditional) {
       patterns.push('modus_ponens');
     }
   }
