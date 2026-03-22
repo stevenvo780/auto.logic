@@ -3,27 +3,15 @@
  *
  * @packageDocumentation
  * @module @stevenvo780/autologic
- *
- * @example
- * ```ts
- * import { formalize, Autologic } from '@stevenvo780/autologic';
- *
- * // Uso stateless
- * const result = formalize("Si llueve, la calle se moja.", {
- *   profile: 'classical.propositional',
- *   language: 'es',
- * });
- * console.log(result.stCode);
- *
- * // Uso con estado
- * const al = new Autologic({ language: 'es' });
- * const r = al.formalize("Todo humano es mortal. Sócrates es humano.");
- * ```
  */
 
 // ── API pública principal ─────────────────────
-export { formalize } from './formalize';
+export { formalize, formalizeWithLLM } from './formalize';
+export { lintNaturalLanguage, DEFAULT_RULES } from './nl-linter';
+export type { NLLinterDiagnostic, NLRule } from './nl-linter';
 export { Autologic } from './autologic';
+export { parseTextWithLLM, llmResultToST } from './llm-parser';
+export type { LLMConfig, LLMParsedResult } from './llm-parser';
 
 // ── Tipos ─────────────────────────────────────
 export type {

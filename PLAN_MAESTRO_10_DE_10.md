@@ -1,51 +1,55 @@
-# Plan Maestro 10/10: Hacia una Semántica Formal Estricta (Dialéctica Empírica)
+# Plan Maestro 10/10: Semántica Formal Estricta (Auditoría Total ST)
 
-Implementar lógicas no-clásicas robustas sobre un árbol léxico de lenguaje natural superficial ha probado ser fundamentalmente insuficiente. Los tests arquitecturales extremos (Vitest `architectural-limits.test.ts`) han hecho estallar y avergonzado al motor actual:
+Implementar lógicas no-clásicas robustas sobre un árbol léxico de lenguaje natural superficial ha probado ser fundamentalmente insuficiente. Los tests arquitecturales extremos (Vitest `architectural-limits-comprehensive.test.ts`) que mapean explícitamente los **10 dominios soportados por ST** han hecho estallar y avergonzado al motor actual, revelando que el enfoque heurístico (regex/NLP superficial) es inviable.
 
-| Lógica | Premisa Extrema (Input) | Salida Errónea del Sistema Actual (Output Real) | Evidencia del Fracaso |
-|---|---|---|---|
-| **Aritmética** | *"Para todo x y z, si x = y + 2, entonces y = x - 2."* | `forall x (x(x) -> z(x))` | El tokenizer NLP destruyó las matemáticas. Convirtió la variable $x$ en un predicado monádico `x(x)` y aniquiló la ecuación (+, -, y). |
-| **Fol Combinatorio** | *"Cada protocolo tiene exactamente tres supervisores."* | `forall x (Protocolo(x) -> TieneExactamenteTresSupervisores(x))` | Cobardía combinatoria. Ocultó la restricción numérica detrás de una proposición estática gigante incapaz de soportar cálculo SAT. |
-| **Epistémica / DRT** | *"Ana aprueba el balance. Diego sabe esto. Carlos duda."* | `axiom a2 = DIEGO_SABE` | Ceguera anafórica total. Acuñó átomos carentes de objeto (`DIEGO_SABE` / *¿Sabe qué?*). Perdió el puntero anidado hacia Ana. |
-| **Deóntica** | *"Los técnicos están obligados a reiniciar el cluster..."* | `OBLIGADOS_REINICIAR_TECNICOS_CLUSTER` | Incapacidad de aislamiento del operador Normativo. Colapsó la obligación en texto plano, neutralizando a todo el *solucionador* ST subyacente. |
+## 1. Auditoría Extrema de Fallos por Dominio Lógico
 
-A raíz de esta evidencia destructiva, planteamos esta transición absoluta de Ingeniería de Compiladores a ejecutarse incondicionalmente cueste lo que cueste:
+| Lógica | Premisa Extrema (Input) | Falla Arquitectural Evidenciada |
+|---|---|---|
+| **1. Aristotélica** | *"Ningún mamífero pone huevos, excepto el ornitorrinco que sí lo hace."* | **Ceguera Categórica:** El parser mezcla todo en lógica de primer orden o axiomas planos. Ignora la silogística estricta exigida `S es P`. |
+| **2. Clásica (FOL Combinatoria)** | *"Solo fundadores borran exactamente dos tablas."* | **Cobardía Combinatoria:** No desenrolla `$exists x, y (x != y)$` aislados. Emite variables atascadas (`ExactamenteDosTablas(x)`). |
+| **3. Aritmética** | *"Si al cuadrado de X le sumas Y..."* | **Destrucción Matemática:** Aniquila las partes algebraicas como texto (`SiAlCuadradoDeX(...)`) imposibilitando su pase al perfil `arithmetic` de ST. |
+| **4. Deóntica (CTD Paradojas)** | *"Debes compilar... pero si no, estás obligado a reportar."* | **Colapso Normativo:** Los Modales `O()` se pierden por pasividad lingüística. Resulta en `ESTAS_OBLIGADO_A(...)` anulando la evaluación de obligaciones. |
+| **5. Epistémica S5 (Multi-agente)** | *"Diego sabe esto. Carlos cree que Diego lo ignora."* | **Amnesia Anafórica:** Inexistencia de DRT. `ESTO` y `LO` terminan como átomos huérfanos sin heredar el árbol lógico apuntado. |
+| **6. Temporal (LTL)** | *"La alarma sonará eventualmente, y siempre se mantendrá..."* | **Ignorancia Modal LTL:** Confunde `Eventually/Always` con predicados monádicos en lugar de los operadores formales de transición de estado temporal. |
+| **7. Alethica (Modal)** | *"Es necesario que... pero contingente que..."* | **Colapso Nominal:** Pierde el rastro fundamental entre la Necesidad Categórica ($\Box$) y la Posibilidad ($\Diamond$), insertándolos como texto. |
+| **8. Paraconsistente** | *"El paquete fue recibido y no fue recibido."* | **Limpieza Autodestructiva:** Los parsers eliminan la contradicción forzada y fallan al componer $P \land \neg P$ puros. |
+| **9. Probabilística** | *"Hay un 75.5% de probabilidad de..."* | **Incapacidad de Grados:** Fracaso en asignar pesajes fraccionarios exactos (`Pr(X)=0.755`) en el AST a las premisas del compilador. |
+| **10. Intuicionista** | *"No es cierto que no tengamos soluciones."* | **Reducción Inapropiada:** Simplifica $\neg\neg P \implies P$, un pecado letal en Heyting/Constructivismo donde eso es inválido. |
 
----
-
-## 1. El Mini-Parser CFG (Aislamiento Algebraico)
-**Diagnóstico:** NLP destruye variables formales y operadores (`+`, `=`). No se puede correr Regex sobre lenguaje Lisp inverso.
-**Arquitectura Exigida:**
-- **Inyección de `src/atoms/math-parser.ts`**: Implementación de un analizador *Recursive Descent* liviano que actúe **ANTES** del `nlp-tokenizer`.
-- Al encontrar ventanas de alta densidad de símbolos `[x, y, =, +, -, ^, *]`, el sistema capturará la ecuación entera, formará un AST Algebraico en memoria `$M_1 = Equality(y, Subtraction(x, 2))` y dejará una llave blindada en el texto (`__MATH_1__`). Luego en el ST-Emitter restituirá su forma funcional en lugar de destrozarlo como lenguaje natural.
-
-## 2. Abandono de Concatenadores de Cadenas por AST (Abstract Syntax Tree)
-**Diagnóstico:** Emitir strings directos (`"forall x (" + atom + ")"`) asume que el universo lógico no tiene ramas que pueden colapsar o ramificarse.
-**Arquitectura Exigida:**
-- **Creación de `src/formula/ast.ts`**: La piedra angular. Interfaces de árbol `LogicNode`: `QuantifierNode`, `ModalNode`, `PredicateNode`, `RefNode`.
-- **Rutinas de Emisión Dinámicas**: Cuando haya exigencias de `"exactamente N"`, un generador construirá el AST combinatorio insertando `N` variables en un array, y un Sub-Árbol de restricciones de NO-IDENTIDAD (`x1 != x2 & x1 != x3`), logrando verdadero rigor Formal sin plantillas "tramposas".
-
-## 3. Estado de Discurso y Manejo de Punteros Anafóricos (DRT)
-**Diagnóstico:** Pronombres como *esto, lo anterior, aquel que* no tienen memoria inter-oracional. Rompen las lógicas S5 (Epistémicas/Deónticas) de conocimiento compartido.
-**Arquitectura Exigida:**
-- **Creación de `src/context/discourse-state.ts` (DRT)**: Una clase `StateStack` que mantenga los IDs de los Nodos Lógicos generados por frases previas.
-- Cuando el lexer detecta "esto" (en *"Diego sabe esto"*), no inserta la palabra "esto" como texto. Interroga al Stack, obtiene el nodo raíz de la oración 1: `APRUEBA(Ana, balance)`, y lo anida lógicamente en su árbol: `ModalNode(type: "K", agent: "Diego", child: RefNode(ID_1))`. Produciendo por fin: `K_Diego(APRUEBA_BALANCE_ANA)`.
-
-## 4. POS-Tagging en Análisis de Propósito (El Fín de las Proposiciones Gigantes)
-**Diagnóstico:** *"Obligado a"* termina colapsando la variable en texto. No logramos aislar el verbo imperativo.
-**Arquitectura Exigida:**
-- Re-factorización intensiva de `src/atoms/keyword-extractor.ts`.
-- Mapear explícitamente clases de intencionalidad léxica a Nodos AST:
-  `{ stems: ["oblig", "deb"], node: ModalNode(type: 'O') }`
-  `{ stems: ["permit", "licit"], node: ModalNode(type: 'P') }`
-- Reducir el core del verbo y desvestir por completo el modificador para garantizar que el `ClauseSplitter` emita `O(Reiniciar(cluster))` y jamás el insulso `EstanObligadosAReiniciar(cluster)`.
+A raíz de esta evidencia destructiva (10/10 tests reprobados en 10 dominios lógicos distintos del compilador ST), exigimos incondicionalmente la siguiente transición hacia **Ingeniería de Compiladores Formal**:
 
 ---
 
-### Dialéctica de Ejecución (Siguientes Pasos del Sistema)
+## 2. Paradigma de Solución Absoluta (La Refactorización)
 
-Si vamos a pagar el precio de programar esto en la vida real, lo haremos en estricto orden de dependencias:
-1. **Fase 1: Infraestructura Base.** Escribir `ast.ts` y reescribir `generator.ts` para que sepa imprimir desde un AST puro en lugar de matrices de strings.
-2. **Fase 2: El Escudo Algebraico.** Implementar el parser matemático (`math-parser.ts`) y garantizar que superamos el Test #2.
-3. **Fase 3: Combinatoria en FOL.** Reescribir `first-order.ts` retornando nodos puros dinámicos. Esto vencerá al Test #1 (exactamente tres).
-4. **Fase 4: Anáfora y Discurso.** Inyectar la clase de contexto, logrando las variables de referencia en Modales, venciendo al Test #3 y #4.
+### Fase 1: Abandono de Strings por Interfaz Abstract Syntax Tree (AST) Pura
+**Diagnóstico:** Emitir strings directos oculta la topología. Un nodo Alethico no puede concatenarse regex-wise a un Paraconsistente.
+**Ejecución:**
+- Creación de `src/formula/ast.ts`. Se prohíbe emitir texto a ST. Todo tokenizador retornará árboles tipados: `QuantifierNode`, `ModalNode(Temporal)`.
+- El AST permitirá componer la combinatoria (`exactamente N`) delegando un generador interno que instancie dinámicamente $n$ variables no idénticas (`x != y`).
+
+### Fase 2: Miniparsers Contextuales (CFG Algebraico y Modal)
+**Diagnóstico:** "Exactamente un 75.5%" o "Cuadrado de X + Y" rompen el tokenizer sintáctico puro del NLP.
+**Ejecución:**
+- Inyectar sub-evaluadores *Recursive Descent* de alta prioridad (`src/atoms/math-parser.ts`, `src/atoms/probability-parser.ts`). 
+- Escudo Algebraico: Si ve matemáticas/porcentajes, forma un AST aislado (`__MATH_1__`) y resguarda la integridad simbólica.
+
+### Fase 3: Punteros de Memoria Inter-Oracional (Discourse Representation Theory - DRT)
+**Diagnóstico:** Lógicas Epistémicas y Deónticas entrelazadas fallan sin referencias (Anafóricas: "esto", "aquel").
+**Ejecución:**
+- Creación de `src/context/discourse-state.ts`.
+- Una pila (`StateStack`) conservará los IDs de clústeres. Al ver "sabe esto", no genera el string "esto", extrae el AST previo del Stack y lo envuelve en un `ModalNode(Agent, K)`.
+
+### Fase 4: Taxonomía Intencional de Verbos (POS-Tagging modal)
+**Diagnóstico:** Expresiones pasivas modales ("está obligado a", "es necesario que") colapsan.
+**Ejecución:**
+- Reescribir `keyword-extractor.ts` a un nivel semántico duro.
+- Mapeos por perfil: `{ stems: ["oblig", "deb"], node: ModalNode(type: 'O') }` sin arrastrar predicados verbales.
+
+---
+### Cronograma de Ejecución
+1. Escribir y asentar el runtime para emitir desde AST en lugar de texto.
+2. Construir generadores LTL y Alethicos aislados. 
+3. Enganchar la Pila de DRT para anáforas epistémicas.
+4. Escudar matemáticas en una burbuja CFG para alimentar libremente el perfil `logic arithmetic` de ST.

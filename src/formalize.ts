@@ -10,6 +10,7 @@ import { analyzeDiscourse } from './discourse';
 import { extractAtoms } from './atoms';
 import { buildFormulas } from './formula';
 import { emitST } from './generator/st-emitter';
+import { compileComplexLogic } from './compiler-frontend';
 import { executeST, executionToDiagnostics, validateST, validationToDiagnostics } from './generator/validator';
 
 /** Opciones por defecto */
@@ -48,6 +49,38 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
   }
 
   try {
+    
+    // ── 0. Compilador AST Directo (Fase 1-4) ─────
+    const advancedLogic = compileComplexLogic(text, opts.profile);
+    if (advancedLogic) {
+      const { code: stCode, diagnostics: emitDiags } = emitST({
+        profile: opts.profile,
+        language: opts.language,
+        includeComments: opts.includeComments,
+        atoms: new Map(),
+        formulas: advancedLogic.map((al, idx) => ({
+          formula: al.formula,
+          stType: al.type,
+          label: `a${idx+1}`,
+          sourceText: text,
+          sourceSentence: 0,
+        })),
+        detectedPatterns: ['ast_compiled']
+      });
+      diagnostics.push(...emitDiags);
+      
+      return {
+        ok: true,
+        stCode,
+        analysis: { sentences: [], argumentStructure: { premises: [], conclusions: [], conditions: [], relations: [] }, detectedPatterns: [] },
+        atoms: new Map(),
+        formulas: [],
+        diagnostics,
+        stValidation: {ok: true, errors: []},
+        stExecution: undefined
+      }
+    }
+
     // ── 1. Segmentación ─────────────────────────
     const sentences = segment(text, opts.language);
 
@@ -172,4 +205,97 @@ function emptyResult(message: string, diagnostics: Diagnostic[]): FormalizationR
     formulas: [],
     diagnostics,
   };
+}
+
+import { parseTextWithLLM, llmResultToST, LLMParsedResult, LLMConfig } from './llm-parser';
+import { lintNaturalLanguage, DEFAULT_RULES, NLLinterDiagnostic } from './nl-linter';
+
+export interface FormalizeWithLLMOptions extends FormalizeOptions {
+  llmConfig: LLMConfig;
+  abortOnLinterErrors?: boolean;
+}
+
+export interface FormalizationLLMResult extends FormalizationResult {
+  linterDiagnostics: NLLinterDiagnostic[];
+  llmRawAst?: LLMParsedResult;
+}
+
+/**
+ * Nueva entrada arquitectonica de Doble Capa.
+ * 1. Pasa por en NL Linter
+ * 2. Manda a Inferencia (Local o Red)
+ */
+export async function formalizeWithLLM(text: string, options: FormalizeWithLLMOptions): Promise<FormalizationLLMResult> {
+  const opts = { ...DEFAULTS, abortOnLinterErrors: true, ...options };
+  const baseResult: FormalizationLLMResult = {
+      ok: false, stCode: '', analysis: { sentences: [], argumentStructure: { premises: [], conclusions: [], conditions: [], relations: [] }, detectedPatterns: [] },
+      atoms: new Map(), formulas: [], diagnostics: [], stValidation: {ok: true, errors: []}, stExecution: undefined,
+      linterDiagnostics: []
+  };
+
+  // 1. Capa Linter
+  const linterDiagnostics = lintNaturalLanguage(text, DEFAULT_RULES);
+  baseResult.linterDiagnostics = linterDiagnostics;
+  
+  const hasErrors = linterDiagnostics.some(d => d.severity === 'error');
+  if (hasErrors && opts.abortOnLinterErrors) {
+      baseResult.diagnostics.push({
+          severity: 'error',
+          code: 'NL_LINTER_ABORT',
+          message: 'El texto no es apto para formalización. Revisa los errores del NL Linter.'
+      });
+      return baseResult;
+  }
+
+  try {
+      // 2. Capa LLM / SLM (Inferencia semántica)
+      const parsedAst = await parseTextWithLLM(text, opts.profile, opts.llmConfig);
+      baseResult.llmRawAst = parsedAst;
+
+      // 3. Traducimos el Árbol JSON a código ST
+      const stLines = llmResultToST(parsedAst);
+      
+      const generatorInput = stLines.map((line, i) => ({
+          formula: line.formula,
+          stType: line.type,
+          label: line.type === 'axiom' ? `a${i+1}` : `c${i+1}`,
+          sourceText: '', sourceSentence: 0
+      }));
+
+      const { code: stCode, diagnostics: emitDiags } = emitST({
+          profile: opts.profile,
+          language: opts.language,
+          includeComments: opts.includeComments,
+          atoms: new Map(),
+          formulas: generatorInput,
+          detectedPatterns: ['llm_extracted']
+      });
+
+      baseResult.stCode = stCode;
+      baseResult.diagnostics.push(...emitDiags);
+
+      if (opts.validateOutput) {
+          const stValidation = validateST(stCode);
+          baseResult.stValidation = stValidation;
+          baseResult.diagnostics.push(...validationToDiagnostics(stValidation));
+
+          if (stValidation.ok) {
+              const stExecution = executeST(stCode);
+              baseResult.stExecution = stExecution;
+              baseResult.diagnostics.push(...executionToDiagnostics(stExecution));
+          }
+      }
+
+      const allValid = baseResult.diagnostics.every(d => d.severity !== 'error');
+      baseResult.ok = allValid;
+      return baseResult;
+
+  } catch (err: any) {
+      baseResult.diagnostics.push({
+          severity: 'error',
+          code: 'LLM_PIPELINE_ERROR',
+          message: `Ocurrió un error en la capa inferencial: ${err.message}`
+      });
+      return baseResult;
+  }
 }
