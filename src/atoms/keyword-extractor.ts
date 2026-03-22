@@ -60,6 +60,17 @@ export function extractSubjectPredicate(
   text: string,
   language: Language = 'es'
 ): { subject: string; predicate: string } | null {
+  // Phase 1.2: Lightweight Math Lexer
+  // e.g., a = b + c -> Equals(a, Add(b, c))
+  // Simple heuristic for math formulas in text:
+  const mathMatch = text.match(/([a-zA-Z0-9]+)\s*([+\-=<>])\s*([a-zA-Z0-9()+*^-]+)/);
+  if (mathMatch && mathMatch[2] === '=') {
+     return {
+       subject: mathMatch[1].trim(),
+       predicate: 'Equals_' + mathMatch[3].replace(/[^a-zA-Z0-9]/g, '').trim()
+     };
+  }
+
   const tokens = tokenize(text, language);
   const content = tokens.filter(t => !t.isStopword);
 
@@ -88,9 +99,17 @@ export function extractSubjectPredicate(
   }
 
   // Fallback: primera palabra = sujeto, resto = predicado
+  // Phase 1.3: Stop-words filter for subjects/predicates
+  const filteredContent = content.filter(t => !['mera', 'ya', 'tambien', 'acaso', 'pues', 'tal', 'vez'].includes(t.normalized));
+  if (filteredContent.length > 0) {
+    return {
+      subject: filteredContent[0].normalized,
+      predicate: filteredContent.slice(1).map(t => t.normalized).join('_'),
+    };
+  }
   return {
-    subject: content[0].normalized,
-    predicate: content.slice(1).map(t => t.normalized).join('_'),
+    subject: content[0]?.normalized || 'x',
+    predicate: content.slice(1).map(t => t.normalized).join('_') || 'P',
   };
 }
 

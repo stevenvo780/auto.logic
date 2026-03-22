@@ -55,6 +55,28 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
       return emptyResult('No se detectaron oraciones en el texto.', diagnostics);
     }
 
+    // ── 1.5. Resolución Anafórica (Fase 2.1) ────────
+    let lastSubject = '';
+    for (const sentence of sentences) {
+      for (const clause of sentence.clauses) {
+         // Heuristica basica para buscar el sujeto dominante 
+         // o palabras clave de la clausula
+         const words = clause.text.split(' ');
+         for (let i=0; i<words.length; i++) {
+           const w = words[i].toLowerCase();
+           if (['el', 'la', 'los', 'las', 'un', 'una'].includes(w) && i+1 < words.length && words[i+1].length > 3) {
+              lastSubject = words[i+1];
+           }
+         }
+         
+         // Reemplazar anáforas
+         if (lastSubject) {
+            clause.text = clause.text.replace(/\b(este|ese|aquel|éste|ése|aquél)\b/gi, lastSubject);
+            clause.text = clause.text.replace(/\b(lo anterior)\b/gi, lastSubject);
+         }
+      }
+    }
+
     // ── 2. Análisis discursivo ──────────────────
     const analysis = analyzeDiscourse(sentences, opts.language);
 

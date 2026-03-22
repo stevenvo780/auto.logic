@@ -144,22 +144,33 @@ function buildFOSentence(
         
         // Remove quantifiers from variable name if present
         variable = variable.replace(/^(todo|toda|cada|ningun|ninguna|algun|alguna|algunos|el|la|los|las)_/i, '');
+        const lowerClause = clause.text.toLowerCase();
 
-        if (variable.length > 1) {
-          // Subject is a class
-          const domainPred = variable.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
-          const varName = 'x';
-          
-          if (clause.modifiers.some(m => m.type === 'negation')) {
-             formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & !(${formatPredicate(pred, varName)}))`;
-          } else {
-             formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & ${formatPredicate(pred, varName)})`;
-          }
+        // 1.1 Combinatorial Macros
+        if (lowerClause.includes('exactamente un') || lowerClause.includes('unico ') || lowerClause.includes('único ')) {
+          // Exactly one
+          formula = `exists x (${formatPredicate(pred, 'x')} & forall y (${formatPredicate(pred, 'y')} -> x=y))`;
+        } else if (lowerClause.includes('exactamente dos')) {
+          // Exactly two
+          formula = `exists x, y (${formatPredicate(pred, 'x')} & ${formatPredicate(pred, 'y')} & x!=y & forall z (${formatPredicate(pred, 'z')} -> (z=x | z=y)))`;
         } else {
-          if (clause.modifiers.some(m => m.type === 'negation')) {
-             formula = `exists ${variable} !(${formatPredicate(pred, variable)})`;
+          // Normal Existential
+          if (variable.length > 1) {
+            // Subject is a class
+            const domainPred = variable.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+            const varName = 'x';
+            
+            if (clause.modifiers.some(m => m.type === 'negation')) {
+               formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & !(${formatPredicate(pred, varName)}))`;
+            } else {
+               formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & ${formatPredicate(pred, varName)})`;
+            }
           } else {
-             formula = `exists ${variable} ${formatPredicate(pred, variable)}`;
+            if (clause.modifiers.some(m => m.type === 'negation')) {
+               formula = `exists ${variable} !(${formatPredicate(pred, variable)})`;
+            } else {
+               formula = `exists ${variable} ${formatPredicate(pred, variable)}`;
+            }
           }
         }
 

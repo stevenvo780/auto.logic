@@ -70,8 +70,30 @@ function buildModalSentence(
     if (condClauses.length > 0 && consClauses.length > 0) {
       const antAtom = resolveAtomId(condClauses[0].text, allAtoms);
       const consAtom = resolveAtomId(consClauses[0].text, allAtoms);
-      const sentenceLevel = pickLeadingSentenceModifiers(clauses[0].modifiers, 'modal');
-      const antFormula = applyLogicalModifiers(antAtom, stripModifierFamily(condClauses[0].modifiers, 'modal'), profile);
+      
+      const firstClause = clauses[0];
+      const condMarker = firstClause.markers.find(m => m.role === 'condition');
+      
+      let sentenceLevel: string[] = [];
+      let antModifiers: string[] = [];
+      
+      if (condMarker) {
+        // Find modal modifiers that appear BEFORE the conditional marker (e.g. "Es necesario que si...")
+        const modalModifiersBeforeCond = firstClause.modifiers.filter(mod => {
+          const mMarker = firstClause.markers.find(m => m.text === mod.text);
+          return mMarker && mMarker.position < condMarker.position && ['necessity', 'possibility'].includes(mod.type);
+        });
+        
+        sentenceLevel = modalModifiersBeforeCond.map(m => m.type);
+        antModifiers = firstClause.modifiers
+          .filter(mod => !sentenceLevel.includes(mod.type))
+          .map(m => m.type);
+      } else {
+        sentenceLevel = pickLeadingSentenceModifiers(firstClause.modifiers, 'modal');
+        antModifiers = stripModifierFamily(firstClause.modifiers, 'modal');
+      }
+
+      const antFormula = applyLogicalModifiers(antAtom, antModifiers, profile);
       const consFormula = applyLogicalModifiers(consAtom, consClauses[0].modifiers.map((modifier) => modifier.type), profile);
       const implication = `${antFormula} -> ${consFormula}`;
 
