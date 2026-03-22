@@ -39,7 +39,7 @@ describe('ST Emitter', () => {
       formulas,
       detectedPatterns: ['modus_ponens'],
     });
-    expect(code).toContain('axiom regla_1 : LLUEVE -> CALLE_MOJADA');
+    expect(code).toContain('axiom regla_1 = LLUEVE -> CALLE_MOJADA');
   });
 
   it('emite derive con from', () => {

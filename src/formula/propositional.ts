@@ -2,12 +2,14 @@
  * Propositional Formula Builder
  *
  * Construye fórmulas de lógica proposicional a partir de átomos con roles.
+ * Genera fórmulas reales con conectivos: →, ∧, ∨, ¬, ↔
  */
 import type { AnalyzedSentence, AtomEntry, FormulaEntry, STStatementType } from '../types';
 import { ST_OPERATORS } from './connectors';
 
 /**
  * Construye fórmulas proposicionales para un conjunto de oraciones.
+ * Cada oración se procesa según su tipo detectado.
  */
 export function buildPropositional(
   sentences: AnalyzedSentence[],
@@ -17,16 +19,14 @@ export function buildPropositional(
   const formulas: FormulaEntry[] = [];
   let labelCounter = 1;
 
+  // Construir mapa global de cláusula-texto → atomId
+  const globalClauseAtomMap = buildGlobalAtomMap(sentences, atomEntries);
+
   for (let sIdx = 0; sIdx < sentences.length; sIdx++) {
     const sentence = sentences[sIdx];
-    const sentenceAtoms = atomEntries.filter(a => {
-      // Buscar átomos que pertenecen a cláusulas de esta oración
-      const clauseIdxs = sentence.clauses.map((_, i) => i);
-      // Heurística: mapear por índice global de cláusula
-      return true; // procesamos todos y filtramos por contexto
-    });
-
-    const builtFormulas = buildSentenceFormulas(sentence, atomEntries, sIdx, labelCounter, detectedPatterns);
+    const builtFormulas = buildSentenceFormulas(
+      sentence, atomEntries, globalClauseAtomMap, sIdx, labelCounter, detectedPatterns,
+    );
     formulas.push(...builtFormulas);
     labelCounter += builtFormulas.length;
   }
@@ -35,37 +35,57 @@ export function buildPropositional(
 }
 
 /**
+ * Construye un mapa global de texto-cláusula → atomId.
+ */
+function buildGlobalAtomMap(
+  sentences: AnalyzedSentence[],
+  atomEntries: AtomEntry[],
+): Map<string, string> {
+  const map = new Map<string, string>();
+
+  // Recopilar todas las cláusulas con su índice global
+  let globalIdx = 0;
+  for (const sentence of sentences) {
+    for (const clause of sentence.clauses) {
+      // Buscar átomo por texto exacto
+      const exactMatch = atomEntries.find(a => a.text === clause.text);
+      if (exactMatch) {
+        map.set(clause.text, exactMatch.id);
+      } else {
+        // Buscar por inclusión
+        const partialMatch = atomEntries.find(a =>
+          a.text.includes(clause.text) || clause.text.includes(a.text)
+        );
+        if (partialMatch) {
+          map.set(clause.text, partialMatch.id);
+        } else {
+          // Buscar por índice de cláusula fuente
+          const bySource = atomEntries.find(a => a.sourceClause === globalIdx);
+          if (bySource) {
+            map.set(clause.text, bySource.id);
+          }
+        }
+      }
+      globalIdx++;
+    }
+  }
+
+  return map;
+}
+
+/**
  * Construye fórmulas para una oración individual.
  */
 function buildSentenceFormulas(
   sentence: AnalyzedSentence,
   allAtoms: AtomEntry[],
+  globalMap: Map<string, string>,
   sentenceIdx: number,
   labelStart: number,
   patterns: string[],
 ): FormulaEntry[] {
   const clauses = sentence.clauses;
   if (clauses.length === 0) return [];
-
-  // Obtener átomos para esta oración (por texto de cláusula)
-  const clauseAtomMap = new Map<string, string>();
-  for (const atom of allAtoms) {
-    // Mapear texto de cláusula → atom ID
-    const matchClause = clauses.find(c =>
-      c.text === atom.text || c.text.includes(atom.text) || atom.text.includes(c.text)
-    );
-    if (matchClause) {
-      clauseAtomMap.set(matchClause.text, atom.id);
-    }
-  }
-
-  // Fallback: asignar átomos por orden si no hay match textual
-  if (clauseAtomMap.size === 0) {
-    clauses.forEach((c, i) => {
-      const atom = allAtoms[i];
-      if (atom) clauseAtomMap.set(c.text, atom.id);
-    });
-  }
 
   const formulas: FormulaEntry[] = [];
   let label = labelStart;
@@ -77,8 +97,7 @@ function buildSentenceFormulas(
         c.role === 'consequent' || c.role === 'conclusion' || c.role === 'assertion'
       );
 
-      // Fallback: si no hay cláusula explícita de condición pero hay consequent,
-      // usar la primera cláusula que no sea consequent como condición
+      // Fallback: si no hay cláusula explícita de condición, inferir por posición
       if (conditionClauses.length === 0 && clauses.length >= 2) {
         const nonConsequent = clauses.filter(c =>
           c.role !== 'consequent' && c.role !== 'conclusion'
@@ -90,8 +109,8 @@ function buildSentenceFormulas(
       }
 
       if (conditionClauses.length > 0 && consequentClauses.length > 0) {
-        const antecedent = getAtomId(conditionClauses[0].text, clauseAtomMap, allAtoms);
-        const consequent = getAtomId(consequentClauses[0].text, clauseAtomMap, allAtoms);
+        const antecedent = resolveAtom(conditionClauses[0].text, globalMap, allAtoms);
+        const consequent = resolveAtom(consequentClauses[0].text, globalMap, allAtoms);
 
         // Aplicar negación si hay modificadores
         const antStr = applyModifiers(antecedent, conditionClauses[0].modifiers.map(m => m.type));
@@ -111,8 +130,8 @@ function buildSentenceFormulas(
 
     case 'biconditional': {
       if (clauses.length >= 2) {
-        const left = getAtomId(clauses[0].text, clauseAtomMap, allAtoms);
-        const right = getAtomId(clauses[1].text, clauseAtomMap, allAtoms);
+        const left = resolveAtom(clauses[0].text, globalMap, allAtoms);
+        const right = resolveAtom(clauses[1].text, globalMap, allAtoms);
         formulas.push({
           formula: `${left} ${ST_OPERATORS.biconditional} ${right}`,
           stType: 'axiom',
@@ -126,7 +145,7 @@ function buildSentenceFormulas(
     }
 
     case 'conjunction': {
-      const atoms = clauses.map(c => getAtomId(c.text, clauseAtomMap, allAtoms));
+      const atoms = clauses.map(c => resolveAtom(c.text, globalMap, allAtoms));
       if (atoms.length >= 2) {
         const formula = atoms.join(` ${ST_OPERATORS.conjunction} `);
         formulas.push({
@@ -137,12 +156,21 @@ function buildSentenceFormulas(
           sourceSentence: sentenceIdx,
           comment: `Conjunción: "${sentence.original}"`,
         });
+      } else if (atoms.length === 1) {
+        formulas.push({
+          formula: atoms[0],
+          stType: 'axiom',
+          label: `hecho_${label}`,
+          sourceText: sentence.original,
+          sourceSentence: sentenceIdx,
+          comment: `Hecho: "${sentence.original}"`,
+        });
       }
       break;
     }
 
     case 'disjunction': {
-      const atoms = clauses.map(c => getAtomId(c.text, clauseAtomMap, allAtoms));
+      const atoms = clauses.map(c => resolveAtom(c.text, globalMap, allAtoms));
       if (atoms.length >= 2) {
         const formula = atoms.join(` ${ST_OPERATORS.disjunction} `);
         formulas.push({
@@ -159,7 +187,7 @@ function buildSentenceFormulas(
 
     case 'negation': {
       if (clauses.length > 0) {
-        const atom = getAtomId(clauses[0].text, clauseAtomMap, allAtoms);
+        const atom = resolveAtom(clauses[0].text, globalMap, allAtoms);
         formulas.push({
           formula: `${ST_OPERATORS.negation}(${atom})`,
           stType: 'axiom',
@@ -173,13 +201,13 @@ function buildSentenceFormulas(
     }
 
     case 'complex': {
-      // Oraciones complejas con premisas y conclusiones
+      // Oraciones complejas con premisas y conclusiones explícitas
       const premiseClauses = clauses.filter(c => c.role === 'premise');
       const conclusionClauses = clauses.filter(c => c.role === 'conclusion');
 
       // Generar axiomas para premisas
       for (const pClause of premiseClauses) {
-        const atom = getAtomId(pClause.text, clauseAtomMap, allAtoms);
+        const atom = resolveAtom(pClause.text, globalMap, allAtoms);
         const atomStr = applyModifiers(atom, pClause.modifiers.map(m => m.type));
         formulas.push({
           formula: atomStr,
@@ -194,10 +222,7 @@ function buildSentenceFormulas(
       // Generar derivaciones para conclusiones
       if (conclusionClauses.length > 0 && premiseClauses.length > 0) {
         for (const cClause of conclusionClauses) {
-          const atom = getAtomId(cClause.text, clauseAtomMap, allAtoms);
-          const premiseLabels = formulas
-            .filter(f => f.stType === 'axiom')
-            .map(f => f.label);
+          const atom = resolveAtom(cClause.text, globalMap, allAtoms);
           formulas.push({
             formula: atom,
             stType: 'derive',
@@ -214,11 +239,10 @@ function buildSentenceFormulas(
     default: {
       // Aserción simple o tipo no manejado arriba
       for (const clause of clauses) {
-        const atom = getAtomId(clause.text, clauseAtomMap, allAtoms);
+        const atom = resolveAtom(clause.text, globalMap, allAtoms);
         const atomStr = applyModifiers(atom, clause.modifiers.map(m => m.type));
 
         const isConclusion = clause.role === 'conclusion';
-        const isPremise = clause.role === 'premise' || clause.role === 'assertion';
 
         formulas.push({
           formula: atomStr,
@@ -240,32 +264,38 @@ function buildSentenceFormulas(
 }
 
 /**
- * Obtiene el ID de átomo para un texto de cláusula.
+ * Resuelve el ID de átomo para un texto de cláusula.
+ * Usa el mapa global, luego busca en todos los átomos.
  */
-function getAtomId(
+function resolveAtom(
   clauseText: string,
-  clauseAtomMap: Map<string, string>,
+  globalMap: Map<string, string>,
   allAtoms: AtomEntry[],
 ): string {
-  // Buscar en el mapa directo
-  const direct = clauseAtomMap.get(clauseText);
-  if (direct) return direct;
+  // 1. Buscar en el mapa global (ya resuelto)
+  const fromMap = globalMap.get(clauseText);
+  if (fromMap) return fromMap;
 
-  // Buscar match parcial
-  for (const [text, id] of clauseAtomMap) {
+  // 2. Match parcial en mapa global
+  for (const [text, id] of globalMap) {
     if (clauseText.includes(text) || text.includes(clauseText)) {
       return id;
     }
   }
 
-  // Buscar en todos los átomos
+  // 3. Buscar en todos los átomos por texto
   const atomMatch = allAtoms.find(a =>
     a.text === clauseText || a.text.includes(clauseText) || clauseText.includes(a.text)
   );
   if (atomMatch) return atomMatch.id;
 
-  // Fallback: generar ID del texto
-  return clauseText.replace(/\s+/g, '_').toUpperCase().slice(0, 20);
+  // 4. Fallback: generar ID del texto
+  return clauseText
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .replace(/\s+/g, '_')
+    .toUpperCase()
+    .slice(0, 30) || 'ATOM';
 }
 
 /**

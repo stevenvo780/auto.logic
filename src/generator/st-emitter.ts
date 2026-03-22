@@ -2,6 +2,7 @@
  * ST Emitter — Genera código fuente ST válido y legible
  *
  * Produce código ST con trazabilidad, comentarios y formato estructurado.
+ * Sintaxis ST: `axiom name = FORMULA`, `derive FORMULA from {labels}`
  */
 import type { FormulaEntry, LogicProfile, AtomEntry, Diagnostic } from '../types';
 
@@ -45,16 +46,8 @@ export function emitST(options: EmitOptions): { code: string; diagnostics: Diagn
       lines.push('// ── Proposiciones atómicas ────────────');
     }
 
-    // Para first_order no hacemos interpret de predicados
-    const isFirstOrder = profile === 'classical.first_order' || profile === 'aristotelian.syllogistic';
-
     for (const [atomId, text] of atoms) {
-      if (isFirstOrder && atomId.includes('(')) {
-        // Para primer orden: usar interpret con la fórmula completa
-        lines.push(`interpret "${text}" as ${atomId}`);
-      } else {
-        lines.push(`interpret "${text}" as ${atomId}`);
-      }
+      lines.push(`interpret "${text}" as ${atomId}`);
     }
     lines.push('');
   }
@@ -74,19 +67,19 @@ export function emitST(options: EmitOptions): { code: string; diagnostics: Diagn
     const derives = formulas.filter(f => f.stType === 'derive');
     const checks = formulas.filter(f => f.stType === 'check');
 
-    // Emitir axiomas
+    // Emitir axiomas — sintaxis ST: `axiom name = FORMULA`
     for (const axiom of axioms) {
       if (includeComments && axiom.comment) {
         lines.push(`// ${axiom.comment}`);
       }
-      lines.push(`axiom ${axiom.label} : ${axiom.formula}`);
+      lines.push(`axiom ${axiom.label} = ${axiom.formula}`);
     }
 
     if (axioms.length > 0 && derives.length > 0) {
       lines.push('');
     }
 
-    // Emitir derivaciones
+    // Emitir derivaciones — sintaxis ST: `derive FORMULA from {labels}`
     for (const derive of derives) {
       if (includeComments && derive.comment) {
         lines.push(`// ${derive.comment}`);

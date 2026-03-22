@@ -25,15 +25,68 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
   const markers = language === 'es' ? MARKERS_ES : MARKERS_EN;
 
   // 1. Detectar todos los marcadores en la oración
-  const matches = findMarkers(sentence, markers);
+  const allMatches = findMarkers(sentence, markers);
 
-  if (matches.length === 0) {
-    // Sin marcadores: intentar dividir por comas significativas
-    return splitByCommas(sentence);
+  // 2. Separar marcadores que cortan la oración vs. que solo anotan
+  //    Los marcadores de negación cortos (no, nunca, jamás, ningún/o)
+  //    y cuantificadores cortos NO deben dividir la oración.
+  const NON_SPLITTING_ROLES: Set<MarkerRole> = new Set([
+    'negation', 'universal', 'existential', 
+    'necessity', 'possibility',
+  ]);
+  // Excepción: marcadores largos (>= 4 palabras) SÍ pueden dividir
+  const splittingMatches = allMatches.filter(m => {
+    if (NON_SPLITTING_ROLES.has(m.marker.role)) {
+      // Solo dividir si es un marcador largo (compuesto de múltiples palabras)
+      const wordCount = m.marker.text.split(/\s+/).length;
+      return wordCount >= 3; // "no es el caso que" SÍ divide, "no" NO divide
+    }
+    return true;
+  });
+
+  if (splittingMatches.length === 0) {
+    // Sin marcadores que dividan: intentar dividir por comas significativas
+    // Pero anotar los marcadores encontrados en la cláusula resultante
+    const commaClauses = splitByCommas(sentence);
+    // Anotar marcadores de negación/cuantificación en las cláusulas
+    if (allMatches.length > 0) {
+      for (const match of allMatches) {
+        const clauseWithMarker = commaClauses.find(c => {
+          const lower = c.text.toLowerCase();
+          return lower.includes(match.marker.text);
+        });
+        if (clauseWithMarker) {
+          clauseWithMarker.markers.push({
+            text: match.marker.text,
+            role: match.marker.role,
+            position: match.startPos,
+          });
+        }
+      }
+    }
+    return commaClauses;
   }
 
-  // 2. Dividir la oración usando las posiciones de los marcadores
-  return buildClauses(sentence, matches);
+  // 3. Dividir la oración usando las posiciones de los marcadores que sí cortan
+  const clauses = buildClauses(sentence, splittingMatches);
+
+  // 4. Anotar marcadores no-splitting en las cláusulas resultantes
+  const nonSplittingMatches = allMatches.filter(m => !splittingMatches.includes(m));
+  for (const match of nonSplittingMatches) {
+    const clauseWithMarker = clauses.find(c => {
+      const lower = c.text.toLowerCase();
+      return lower.includes(match.marker.text);
+    });
+    if (clauseWithMarker) {
+      clauseWithMarker.markers.push({
+        text: match.marker.text,
+        role: match.marker.role,
+        position: match.startPos,
+      });
+    }
+  }
+
+  return clauses;
 }
 
 /**

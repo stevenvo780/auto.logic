@@ -62,11 +62,13 @@ export const MARKERS_ES: MarkerDefinition[] = [
   { text: 'igualmente', role: 'and', language: 'es', priority: 5 },
   { text: 'también', role: 'and', language: 'es', priority: 5 },
   { text: 'además', role: 'and', language: 'es', priority: 5 },
+  { text: 'y', role: 'and', language: 'es', priority: 1 },
 
   // ── Disyunción ──────────────────────────────────
   { text: 'o bien', role: 'or', language: 'es', priority: 6 },
   { text: 'ya sea', role: 'or', language: 'es', priority: 6 },
   { text: 'ya sea que', role: 'or', language: 'es', priority: 7 },
+  { text: 'o', role: 'or', language: 'es', priority: 1 },
 
   // ── Adversativas ────────────────────────────────
   { text: 'sin embargo', role: 'adversative', language: 'es', priority: 7 },
@@ -128,7 +130,7 @@ export const MARKERS_ES: MarkerDefinition[] = [
   { text: 'puede que', role: 'possibility', language: 'es', priority: 6 },
   { text: 'quizás', role: 'possibility', language: 'es', priority: 5 },
   { text: 'tal vez', role: 'possibility', language: 'es', priority: 5 },
-  { text: 'puede', role: 'possibility', language: 'es', priority: 3 },
+  // 'puede' suelto eliminado — solo 'puede que' marca posibilidad real
 
   // ── Bicondicional ───────────────────────────────
   { text: 'equivale a decir que', role: 'biconditional', language: 'es', priority: 9 },

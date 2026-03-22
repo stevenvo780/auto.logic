@@ -14,7 +14,8 @@ export function detectPatterns(sentences: AnalyzedSentence[]): ArgumentPattern[]
 
   const conditionals = sentences.filter(s => s.type === 'conditional');
   const assertions = sentences.filter(s =>
-    s.type === 'assertion' || s.clauses.some(c => c.role === 'premise')
+    s.type === 'assertion' || s.type === 'complex' ||
+    s.clauses.some(c => c.role === 'premise' || c.role === 'assertion')
   );
   const conclusions = sentences.filter(s =>
     s.clauses.some(c => c.role === 'conclusion')
@@ -24,8 +25,13 @@ export function detectPatterns(sentences: AnalyzedSentence[]): ArgumentPattern[]
   );
 
   // Modus Ponens: A→B, A ⊢ B
-  if (conditionals.length > 0 && assertions.length > 0 && conclusions.length > 0) {
-    patterns.push('modus_ponens');
+  // Detectar si hay condicional + assertion que podría ser el antecedente
+  if (conditionals.length > 0 && (assertions.length > 0 || conclusions.length > 0)) {
+    // Verificar que haya al menos una oración no-condicional
+    const nonConditionals = sentences.filter(s => s.type !== 'conditional');
+    if (nonConditionals.length > 0) {
+      patterns.push('modus_ponens');
+    }
   }
 
   // Modus Tollens: A→B, ¬B ⊢ ¬A

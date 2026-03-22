@@ -1,6 +1,6 @@
 {
   "name": "@stevenvo780/autologic",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Formalizador automático de texto natural a lógica formal ST, sin IA. NLP basado en reglas.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -47,5 +47,8 @@
     "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "@stevenvo780/autologic": "^2.0.0"
   }
 }
