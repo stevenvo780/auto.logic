@@ -46,9 +46,12 @@ export function buildCrossSentenceDerivations(
     && !f.formula.includes(ST_OPERATORS.implication)
   );
   const existingDerives = perSentenceFormulas.filter(f => f.stType === 'derive');
-
-  // Si ya hay derives, no duplicar
-  if (existingDerives.length > 0) return extra;
+  const derivedOrExistingFormulas = new Set(existingDerives.map((formula) => formula.formula));
+  const pushExtra = (entry: FormulaEntry) => {
+    if (derivedOrExistingFormulas.has(entry.formula)) return;
+    derivedOrExistingFormulas.add(entry.formula);
+    extra.push(entry);
+  };
 
   // ── Modus Ponens: A→B, A ⊢ B ──────────────────
   if (detectedPatterns.includes('modus_ponens') || conditionals.length > 0) {
@@ -67,7 +70,7 @@ export function buildCrossSentenceDerivations(
           s.clauses.some(c => c.role === 'conclusion')
         );
 
-        extra.push({
+        pushExtra({
           formula: parsed.consequent,
           stType: 'derive',
           label: `mp_${labelCounter++}`,
@@ -105,7 +108,7 @@ export function buildCrossSentenceDerivations(
 
       const foundNeg = matchingNeg || matchingNeg2;
       if (foundNeg) {
-        extra.push({
+        pushExtra({
           formula: `${ST_OPERATORS.negation}(${parsed.antecedent})`,
           stType: 'derive',
           label: `mt_${labelCounter++}`,
@@ -122,7 +125,7 @@ export function buildCrossSentenceDerivations(
   if (detectedPatterns.includes('hypothetical_syllogism') || conditionals.length >= 2) {
     const chains = findConditionalChains(conditionals, atomEntries);
     for (const chain of chains) {
-      extra.push({
+      pushExtra({
         formula: `${chain.start} ${ST_OPERATORS.implication} ${chain.end}`,
         stType: 'derive',
         label: `hs_${labelCounter++}`,
@@ -147,7 +150,7 @@ export function buildCrossSentenceDerivations(
         const negIdx = parts.findIndex(p => atomsUnify(p, negated, atomEntries));
         if (negIdx >= 0) {
           const remaining = parts.filter((_, i) => i !== negIdx).join(` ${ST_OPERATORS.disjunction} `);
-          extra.push({
+          pushExtra({
             formula: remaining,
             stType: 'derive',
             label: `ds_${labelCounter++}`,
@@ -167,8 +170,8 @@ export function buildCrossSentenceDerivations(
     const chains = findConditionalChains(conditionals, atomEntries);
     for (const chain of chains) {
       const matchingStart = findMatchingAxiom(chain.start, positiveAxioms, atomEntries);
-      if (matchingStart && extra.every(e => e.formula !== chain.end)) {
-        extra.push({
+      if (matchingStart && !derivedOrExistingFormulas.has(chain.end)) {
+        pushExtra({
           formula: chain.end,
           stType: 'derive',
           label: `chain_${labelCounter++}`,
@@ -200,7 +203,7 @@ export function buildCrossSentenceDerivations(
 
       // Solo agregar si no es redundante con la conclusión ya existente
       if (!extra.some(e => e.formula === conclusionFormula)) {
-        extra.push({
+        pushExtra({
           formula: `${antecedent} ${ST_OPERATORS.implication} ${conclusionFormula}`,
           stType: 'axiom',
           label: `ui_regla_${labelCounter++}`,
@@ -221,10 +224,24 @@ export function buildCrossSentenceDerivations(
 
 /** Parsea "A -> B" en { antecedent, consequent } */
 function parseImplication(formula: string): { antecedent: string; consequent: string } | null {
-  const idx = formula.indexOf(` ${ST_OPERATORS.implication} `);
+  const operator = ` ${ST_OPERATORS.implication} `;
+  let depth = 0;
+  let idx = -1;
+
+  for (let i = 0; i <= formula.length - operator.length; i++) {
+    const char = formula[i];
+    if (char === '(') depth++;
+    else if (char === ')') depth = Math.max(0, depth - 1);
+
+    if (depth === 0 && formula.slice(i, i + operator.length) === operator) {
+      idx = i;
+      break;
+    }
+  }
+
   if (idx < 0) return null;
   const antecedent = formula.slice(0, idx).trim();
-  const consequent = formula.slice(idx + ` ${ST_OPERATORS.implication} `.length).trim();
+  const consequent = formula.slice(idx + operator.length).trim();
   if (!antecedent || !consequent) return null;
   return { antecedent, consequent };
 }
@@ -252,17 +269,83 @@ function stripNegation(formula: string): string | null {
  * Usa similitud de stems para manejar variaciones morfológicas.
  */
 function atomsUnify(a: string, b: string, atomEntries: AtomEntry[]): boolean {
+  const normalizeFormulaAtom = (value: string): string => {
+    let current = value.trim();
+    let changed = true;
+
+    while (changed) {
+      changed = false;
+      const unaryWrap = current.match(/^(?:!|\[\]|<>|K|B|O|P|G|F)\((.+)\)$/);
+      if (unaryWrap) {
+        current = unaryWrap[1].trim();
+        changed = true;
+        continue;
+      }
+
+      const prefixed = current.match(/^next\s+(.+)$/);
+      if (prefixed) {
+        current = prefixed[1].trim();
+        changed = true;
+      }
+    }
+
+    return current.replace(/^\(|\)$/g, '').trim();
+  };
+
+  const semanticSimilarity = (left: AtomEntry, right: AtomEntry): number => {
+    if (left.polarity && right.polarity && left.polarity !== right.polarity) return 0;
+
+    let score = 0;
+    const sameRelation = left.relationKind && right.relationKind && left.relationKind === right.relationKind;
+    if (sameRelation) score += 0.1;
+
+    if (left.predicate && right.predicate) {
+      const predicateSim = diceSimilarity(bagOfStems(left.predicate, 'es'), bagOfStems(right.predicate, 'es'));
+      if (predicateSim >= 0.8) score += 0.7;
+      else if (predicateSim >= 0.5) score += 0.45;
+    }
+
+    if (left.object && right.object) {
+      const objectSim = diceSimilarity(bagOfStems(left.object, 'es'), bagOfStems(right.object, 'es'));
+      if (objectSim >= 0.75) score += 0.2;
+      else if (objectSim >= 0.5) score += 0.1;
+    }
+
+    if (left.subject && right.subject) {
+      const subjectSim = diceSimilarity(bagOfStems(left.subject, 'es'), bagOfStems(right.subject, 'es'));
+      if (subjectSim >= 0.75) score += 0.15;
+    }
+
+    if (left.relationKind === 'copula' && right.relationKind === 'copula' && left.predicate && right.predicate) {
+      const samePredicate = diceSimilarity(bagOfStems(left.predicate, 'es'), bagOfStems(right.predicate, 'es')) >= 0.8;
+      if (samePredicate) score = Math.max(score, 0.82);
+    }
+
+    if (left.keywords?.length && right.keywords?.length) {
+      const keywordSim = diceSimilarity(new Set(left.keywords), new Set(right.keywords));
+      if (keywordSim >= 0.6) score += 0.1;
+    }
+
+    return Math.min(score, 1);
+  };
+
   // Igualdad directa
   if (a === b) return true;
 
   // Normalizar quitando paréntesis externos
-  const na = a.replace(/^\(|\)$/g, '').trim();
-  const nb = b.replace(/^\(|\)$/g, '').trim();
+  const na = normalizeFormulaAtom(a);
+  const nb = normalizeFormulaAtom(b);
   if (na === nb) return true;
 
   // Buscar los textos originales de los átomos
-  const textA = atomEntries.find(e => e.id === na)?.text;
-  const textB = atomEntries.find(e => e.id === nb)?.text;
+  const atomA = atomEntries.find(e => e.id === na);
+  const atomB = atomEntries.find(e => e.id === nb);
+  const textA = atomA?.text;
+  const textB = atomB?.text;
+
+  if (atomA && atomB && semanticSimilarity(atomA, atomB) >= 0.8) {
+    return true;
+  }
 
   if (textA && textB) {
     const stemsA = bagOfStems(textA, 'es');

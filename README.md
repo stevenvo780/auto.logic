@@ -158,6 +158,8 @@ cd autologic
 npm install
 npm run build     # Compilar TypeScript
 npm test          # 74 tests
+npm run test:long # Batería larga multi-lógica
+npm run report:long # Reporte resumido de textos largos
 npm run test:coverage  # Coverage (~80%)
 ```
 

@@ -4,7 +4,13 @@
  * Construye fórmulas de lógica modal (K, epistémica, deóntica).
  */
 import type { AnalyzedSentence, AtomEntry, FormulaEntry, LogicProfile } from '../types';
-import { ST_OPERATORS } from './connectors';
+import {
+  applyLogicalModifiers,
+  onlyModifierFamily,
+  pickLeadingSentenceModifiers,
+  resolveAtomId,
+  stripModifierFamily
+} from './helpers';
 
 /**
  * Construye fórmulas modales para oraciones con operadores de necesidad/posibilidad.
@@ -38,27 +44,11 @@ function buildModalSentence(
   const clauses = sentence.clauses;
   let label = labelStart;
 
-  // Determinar qué operadores usar según el perfil
-  const necessityOp = getModalNecessity(profile);
-  const possibilityOp = getModalPossibility(profile);
-
   if (sentence.type === 'modal') {
     // Detectar cláusulas con modalidad
     for (const clause of clauses) {
-      const atom = findAtomForClause(clause.text, allAtoms);
-      if (!atom) continue;
-
-      const hasNecessity = clause.modifiers.some(m => m.type === 'necessity');
-      const hasPossibility = clause.modifiers.some(m => m.type === 'possibility');
-
-      let formula: string;
-      if (hasNecessity) {
-        formula = `${necessityOp}(${atom.id})`;
-      } else if (hasPossibility) {
-        formula = `${possibilityOp}(${atom.id})`;
-      } else {
-        formula = atom.id;
-      }
+      const atom = resolveAtomId(clause.text, allAtoms);
+      const formula = applyLogicalModifiers(atom, clause.modifiers.map((modifier) => modifier.type), profile);
 
       formulas.push({
         formula,
@@ -70,54 +60,62 @@ function buildModalSentence(
       });
     }
   } else if (sentence.type === 'conditional') {
-    // Condicional con modalidad
+    // Condicional con modalidad; si el operador aparece al inicio de la oración,
+    // envuelve la implicación completa en vez de perderlo en el antecedente.
     const condClauses = clauses.filter(c => c.role === 'condition');
     const consClauses = clauses.filter(c =>
       c.role === 'consequent' || c.role === 'conclusion' || c.role === 'assertion'
     );
 
     if (condClauses.length > 0 && consClauses.length > 0) {
-      const antAtom = findAtomForClause(condClauses[0].text, allAtoms);
-      const consAtom = findAtomForClause(consClauses[0].text, allAtoms);
+      const antAtom = resolveAtomId(condClauses[0].text, allAtoms);
+      const consAtom = resolveAtomId(consClauses[0].text, allAtoms);
+      const sentenceLevel = pickLeadingSentenceModifiers(clauses[0].modifiers, 'modal');
+      const antFormula = applyLogicalModifiers(antAtom, stripModifierFamily(condClauses[0].modifiers, 'modal'), profile);
+      const consFormula = applyLogicalModifiers(consAtom, consClauses[0].modifiers.map((modifier) => modifier.type), profile);
+      const implication = `${antFormula} -> ${consFormula}`;
 
-      if (antAtom && consAtom) {
-        let antFormula = antAtom.id;
-        let consFormula = consAtom.id;
+      formulas.push({
+        formula: applyLogicalModifiers(implication, sentenceLevel, profile),
+        stType: 'axiom',
+        label: `a${label++}`,
+        sourceText: sentence.original,
+        sourceSentence: sentenceIdx,
+        comment: `Condicional modal: "${sentence.original}"`,
+      });
 
-        // Aplicar modalidad
-        if (condClauses[0].modifiers.some(m => m.type === 'necessity')) {
-          antFormula = `${necessityOp}(${antFormula})`;
-        }
-        if (consClauses[0].modifiers.some(m => m.type === 'possibility')) {
-          consFormula = `${possibilityOp}(${consFormula})`;
-        }
-        if (consClauses[0].modifiers.some(m => m.type === 'necessity')) {
-          consFormula = `${necessityOp}(${consFormula})`;
-        }
+      const supplementalClauses = clauses.filter(clause =>
+        clause !== condClauses[0] && clause !== consClauses[0]
+      );
 
+      for (const clause of supplementalClauses) {
+        const atom = resolveAtomId(clause.text, allAtoms);
         formulas.push({
-          formula: `${antFormula} -> ${consFormula}`,
-          stType: 'axiom',
+          formula: applyLogicalModifiers(atom, clause.modifiers.map((modifier) => modifier.type), profile),
+          stType: clause.role === 'conclusion' ? 'derive' : 'axiom',
           label: `a${label++}`,
-          sourceText: sentence.original,
+          sourceText: clause.text,
           sourceSentence: sentenceIdx,
-          comment: `Condicional modal: "${sentence.original}"`,
+          comment: `Subcláusula modal: "${clause.text}"`,
+        });
+      }
+
+      if (supplementalClauses.length === 0 && sentenceLevel.length > 0) {
+        formulas.push({
+          formula: applyLogicalModifiers(consAtom, consClauses[0].modifiers.map((modifier) => modifier.type), profile),
+          stType: consClauses[0].role === 'conclusion' ? 'derive' : 'axiom',
+          label: `a${label++}`,
+          sourceText: consClauses[0].text,
+          sourceSentence: sentenceIdx,
+          comment: `Consecuente modal contextual: "${consClauses[0].text}"`,
         });
       }
     }
   } else {
     // Oración no-modal: tratarla como proposicional con envoltura
     for (const clause of clauses) {
-      const atom = findAtomForClause(clause.text, allAtoms);
-      if (!atom) continue;
-
-      let formula = atom.id;
-
-      // Revisar si algún modificador indica modalidad
-      for (const mod of clause.modifiers) {
-        if (mod.type === 'necessity') formula = `${necessityOp}(${formula})`;
-        else if (mod.type === 'possibility') formula = `${possibilityOp}(${formula})`;
-      }
+      const atom = resolveAtomId(clause.text, allAtoms);
+      const formula = applyLogicalModifiers(atom, clause.modifiers.map((modifier) => modifier.type), profile);
 
       const isConclusion = clause.role === 'conclusion';
       formulas.push({
@@ -132,28 +130,6 @@ function buildModalSentence(
   }
 
   return formulas;
-}
-
-function findAtomForClause(text: string, allAtoms: AtomEntry[]): AtomEntry | null {
-  return allAtoms.find(a =>
-    a.text === text || a.text.includes(text) || text.includes(a.text)
-  ) || null;
-}
-
-function getModalNecessity(profile: LogicProfile): string {
-  switch (profile) {
-    case 'deontic.standard': return ST_OPERATORS.necessity;    // [] = obligación
-    case 'epistemic.s5': return ST_OPERATORS.necessity;        // [] = conocimiento
-    default: return ST_OPERATORS.necessity;                     // [] = necesidad
-  }
-}
-
-function getModalPossibility(profile: LogicProfile): string {
-  switch (profile) {
-    case 'deontic.standard': return ST_OPERATORS.possibility;  // <> = permisión
-    case 'epistemic.s5': return ST_OPERATORS.possibility;      // <> = creencia
-    default: return ST_OPERATORS.possibility;                   // <> = posibilidad
-  }
 }
 
 function buildModalComment(text: string, profile: LogicProfile): string {

@@ -1,12 +1,12 @@
 /**
  * Atoms — Extractor de átomos proposicionales
  */
-export { extractKeywords, extractStems, bagOfStems, extractSubjectPredicate } from './keyword-extractor';
+export { extractKeywords, extractStems, bagOfStems, extractSubjectPredicate, extractSemanticHint } from './keyword-extractor';
 export { generateId, generatePredicateId, generateVariableId } from './identifier-gen';
 export { areCoreferent, resolveCoreferenceGroups, diceSimilarity } from './coreference';
 
 import type { AtomEntry, AtomStyle, Language, AnalyzedSentence, LogicProfile } from '../types';
-import { extractKeywords, extractSubjectPredicate } from './keyword-extractor';
+import { extractKeywords, extractSemanticHint, extractSubjectPredicate } from './keyword-extractor';
 import { generateId, generatePredicateId, generateVariableId } from './identifier-gen';
 import { resolveCoreferenceGroups } from './coreference';
 
@@ -25,6 +25,17 @@ export function extractAtoms(
   const language = options.language || 'es';
   const style = options.atomStyle || 'keywords';
   const profile = options.profile || 'classical.propositional';
+
+  const buildSemanticFields = (text: string) => extractSemanticHint(text, language);
+  const semanticCache = new Map<string, ReturnType<typeof extractSemanticHint>>();
+
+  const getSemantic = (text: string) => {
+    const cached = semanticCache.get(text);
+    if (cached) return cached;
+    const semantic = buildSemanticFields(text);
+    semanticCache.set(text, semantic);
+    return semantic;
+  };
 
   // 1. Recopilar todos los textos de cláusulas
   const clauseTexts: { text: string; sentIdx: number; clauseIdx: number; role?: string }[] = [];
@@ -69,22 +80,45 @@ export function extractAtoms(
 
   for (let i = 0; i < clauseTexts.length; i++) {
     const ct = clauseTexts[i];
-    const representative = corefGroups.get(i) ?? i;
+    let representative = profile === 'probabilistic.basic'
+      || profile === 'epistemic.s5'
+      || profile === 'classical.first_order'
+      || profile === 'aristotelian.syllogistic'
+      ? i
+      : (corefGroups.get(i) ?? i);
+
+    if (representative !== i) {
+      const repSemantic = getSemantic(clauseTexts[representative].text);
+      const currentSemantic = getSemantic(ct.text);
+
+      if (shouldKeepSeparate(repSemantic, currentSemantic)) {
+        representative = i;
+        corefGroups.set(i, i);
+      }
+    }
 
     if (representativeIds.has(representative)) {
       // Ya existe un átomo para este grupo de coreferencia
       const existingId = representativeIds.get(representative)!;
+      const semantic = getSemantic(ct.text);
       entries.push({
         id: existingId,
         text: ct.text,
         sourceClause: i,
         role: ct.role as AtomEntry['role'],
+        subject: semantic.subject,
+        predicate: semantic.predicate,
+        object: semantic.object,
+        polarity: semantic.polarity,
+        relationKind: semantic.relationKind,
+        keywords: semantic.keywords,
       });
       continue;
     }
 
     // Crear nuevo átomo
     let atomId: string;
+    const semantic = getSemantic(ct.text);
 
     if (profile === 'classical.first_order') {
       // Para primer orden: extraer predicado y términos
@@ -100,6 +134,11 @@ export function extractAtoms(
           role: ct.role as AtomEntry['role'],
           predicate,
           terms: [variable],
+          subject: sp.subject,
+          object: undefined,
+          polarity: semantic.polarity,
+          relationKind: 'copula',
+          keywords: semantic.keywords,
         });
       } else {
         const keywords = extractKeywords(ct.text, language);
@@ -109,16 +148,29 @@ export function extractAtoms(
           text: ct.text,
           sourceClause: i,
           role: ct.role as AtomEntry['role'],
+          subject: semantic.subject,
+          predicate: semantic.predicate,
+          object: semantic.object,
+          polarity: semantic.polarity,
+          relationKind: semantic.relationKind,
+          keywords: semantic.keywords,
         });
       }
     } else {
       const keywords = extractKeywords(ct.text, language);
       atomId = generateId(keywords, style, atomCounter);
+      atomId = ensureUniqueAtomId(atomId, ct.text, atoms, profile, atomCounter);
       entries.push({
         id: atomId,
         text: ct.text,
         sourceClause: i,
         role: ct.role as AtomEntry['role'],
+        subject: semantic.subject,
+        predicate: semantic.predicate,
+        object: semantic.object,
+        polarity: semantic.polarity,
+        relationKind: semantic.relationKind,
+        keywords: semantic.keywords,
       });
     }
 
@@ -128,4 +180,43 @@ export function extractAtoms(
   }
 
   return { atoms, entries };
+}
+
+function ensureUniqueAtomId(
+  atomId: string,
+  text: string,
+  atoms: Map<string, string>,
+  profile: LogicProfile,
+  atomCounter: number,
+): string {
+  if (!atoms.has(atomId) || atoms.get(atomId) === text) {
+    return atomId;
+  }
+
+  if (profile === 'probabilistic.basic') {
+    return `${atomId}_${atomCounter}`;
+  }
+
+  return atomId;
+}
+
+function shouldKeepSeparate(
+  representative: ReturnType<typeof extractSemanticHint>,
+  candidate: ReturnType<typeof extractSemanticHint>,
+): boolean {
+  if (representative.polarity !== candidate.polarity) {
+    return true;
+  }
+
+  const subjectConflict = representative.subject && candidate.subject && representative.subject !== candidate.subject;
+  const predicateConflict = representative.predicate && candidate.predicate && representative.predicate !== candidate.predicate;
+  const objectConflict = representative.object && candidate.object && representative.object !== candidate.object;
+
+  const sharedKeywords = representative.keywords.filter(keyword => candidate.keywords.includes(keyword));
+
+  if ((subjectConflict || predicateConflict || objectConflict) && sharedKeywords.length < 2) {
+    return true;
+  }
+
+  return false;
 }

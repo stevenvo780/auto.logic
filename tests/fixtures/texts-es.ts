@@ -18,6 +18,12 @@ export const MODUS_TOLLENS_ES =
 export const HYPOTHETICAL_SYLLOGISM_ES =
   'Si estudio, apruebo el examen. Si apruebo el examen, obtengo el título. Si obtengo el título, consigo trabajo.';
 
+/** Cadena semántica general → particular */
+export const GENERAL_TO_PARTICULAR_CHAIN_ES =
+  'Si un animal es mamífero, entonces tiene sangre caliente. ' +
+  'Si tiene sangre caliente, entonces puede regular su temperatura. ' +
+  'Los perros son mamíferos. Por lo tanto, los perros pueden regular su temperatura.';
+
 /** Conjunción */
 export const CONJUNCTION_ES =
   'La tierra es redonda y el agua es líquida.';

@@ -33,15 +33,10 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
   const NON_SPLITTING_ROLES: Set<MarkerRole> = new Set([
     'negation', 'universal', 'existential', 
     'necessity', 'possibility',
+    'temporal_next', 'temporal_always', 'temporal_eventually',
   ]);
-  // Excepción: marcadores largos (>= 4 palabras) SÍ pueden dividir
   const splittingMatches = allMatches.filter(m => {
-    if (NON_SPLITTING_ROLES.has(m.marker.role)) {
-      // Solo dividir si es un marcador largo (compuesto de múltiples palabras)
-      const wordCount = m.marker.text.split(/\s+/).length;
-      return wordCount >= 3; // "no es el caso que" SÍ divide, "no" NO divide
-    }
-    return true;
+    return !NON_SPLITTING_ROLES.has(m.marker.role);
   });
 
   if (splittingMatches.length === 0) {
@@ -64,7 +59,7 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
         }
       }
     }
-    return commaClauses;
+    return normalizeClauses(commaClauses);
   }
 
   // 3. Dividir la oración usando las posiciones de los marcadores que sí cortan
@@ -86,7 +81,7 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
     }
   }
 
-  return clauses;
+  return normalizeClauses(mergeLeadingModifierClauses(clauses));
 }
 
 /**
@@ -206,9 +201,9 @@ function buildClauses(sentence: string, matches: MarkerMatch[]): Clause[] {
     }];
   }
 
-  // Post-paso: subdividir cláusulas de condición que contienen comas
+  // Post-paso: subdividir cláusulas de condición y cláusulas largas con comas
   // (e.g. "llueve, la calle se moja" → "llueve" + "la calle se moja")
-  return postSplitConditionalClauses(clauses);
+  return postSplitCommaRichClauses(postSplitConditionalClauses(clauses));
 }
 
 /**
@@ -255,6 +250,172 @@ function postSplitConditionalClauses(clauses: Clause[]): Clause[] {
   return result;
 }
 
+function postSplitCommaRichClauses(clauses: Clause[]): Clause[] {
+  const result: Clause[] = [];
+  let reindex = 0;
+
+  for (const clause of clauses) {
+    const commaParts = clause.text.split(',').map(part => cleanClauseText(part)).filter(Boolean);
+
+    if (commaParts.length <= 1 || !shouldSplitCommaParts(commaParts)) {
+      result.push({
+        ...clause,
+        index: reindex++,
+      });
+      continue;
+    }
+
+    commaParts.forEach((part, partIndex) => {
+      result.push({
+        text: part,
+        markers: partIndex === 0 ? clause.markers : [],
+        index: reindex++,
+      });
+    });
+  }
+
+  return result;
+}
+
+function shouldSplitCommaParts(parts: string[]): boolean {
+  return parts.every(part => looksClauseLike(stripClauseLead(part)));
+}
+
+function stripClauseLead(text: string): string {
+  return cleanClauseText(text).replace(/^(?:y|o|pero|aunque|además|también|no solo|sino que|ni que|sí)\s+/iu, '');
+}
+
+function mergeLeadingModifierClauses(clauses: Clause[]): Clause[] {
+  if (clauses.length < 2) return clauses;
+
+  const unaryRoles: Set<MarkerRole> = new Set([
+    'negation',
+    'universal',
+    'existential',
+    'necessity',
+    'possibility',
+    'temporal_next',
+    'temporal_always',
+    'temporal_eventually'
+  ]);
+
+  const [first, second, ...rest] = clauses;
+  const isUnaryLead =
+    first.markers.length > 0 &&
+    first.markers.every((marker) => unaryRoles.has(marker.role)) &&
+    first.text.split(/\s+/).filter(Boolean).length <= 4;
+
+  if (!isUnaryLead) return clauses;
+
+  const mergedSecond: Clause = {
+    ...second,
+    markers: [...first.markers, ...second.markers],
+  };
+
+  return [mergedSecond, ...rest].map((clause, index) => ({
+    ...clause,
+    index,
+  }));
+}
+
+function normalizeClauses(clauses: Clause[]): Clause[] {
+  if (clauses.length === 0) return clauses;
+
+  const cleaned: Clause[] = [];
+
+  for (const clause of clauses) {
+    const normalizedText = cleanClauseText(clause.text);
+    if (!normalizedText && clause.markers.length === 0) {
+      continue;
+    }
+
+    cleaned.push({
+      ...clause,
+      text: normalizedText,
+    });
+  }
+
+  const merged: Clause[] = [];
+
+  for (let index = 0; index < cleaned.length; index++) {
+    const current = cleaned[index];
+    const next = cleaned[index + 1];
+
+    if (!current) continue;
+
+    if (!current.text && current.markers.length > 0 && next) {
+      next.markers = [...current.markers, ...next.markers];
+      continue;
+    }
+
+    const currentLooksLikeClause = looksClauseLike(current.text);
+    const nextHasLowConnector = Boolean(next?.markers.some(marker =>
+      marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
+    ));
+
+    if (!currentLooksLikeClause && next) {
+      const connectorMarkers = next.markers.filter(marker =>
+        marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
+      );
+      const connector = connectorMarkers[0]?.text ?? '';
+
+      next.text = cleanClauseText(
+        `${current.text}${connector ? ` ${connector}` : ''} ${next.text}`
+      );
+
+      if (nextHasLowConnector) {
+        next.markers = next.markers.filter(marker =>
+          marker.role !== 'and' && marker.role !== 'or' && marker.role !== 'adversative'
+        );
+      }
+
+      next.markers = [...current.markers, ...next.markers];
+      continue;
+    }
+
+    merged.push(current);
+  }
+
+  return merged.map((clause, index) => ({
+    ...clause,
+    text: cleanClauseText(clause.text),
+    index,
+  }));
+}
+
+function looksClauseLike(text: string): boolean {
+  const tokens = text
+    .toLowerCase()
+    .split(/\s+/)
+    .map(token => token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+    .filter(Boolean);
+
+  if (tokens.length < 2) return false;
+
+  return tokens.some(token => isVerbLikeToken(token));
+}
+
+function isVerbLikeToken(token: string): boolean {
+  const commonVerbs = new Set([
+    'es', 'son', 'era', 'eran', 'fue', 'fueron', 'sea', 'sean',
+    'está', 'están', 'estaba', 'estaban', 'esté', 'estén',
+    'hay', 'ha', 'han', 'había', 'habían', 'hubo', 'hubieron',
+    'sabe', 'saben', 'sabemos', 'conoce', 'conocen', 'ignora', 'ignoran',
+    'debe', 'deben', 'puede', 'pueden', 'paga', 'pagó', 'pagan',
+    'recibe', 'reciben', 'puede', 'pueden', 'entra', 'entran',
+    'vuelve', 'vuelven', 'pasa', 'pasan', 'detecta', 'detectan',
+    'registra', 'registra', 'permanece', 'permanece', 'comienza', 'continúa',
+    'termina', 'ocurre', 'completa', 'conserva', 'invalide', 'dirigirse',
+    'leer', 'leído', 'oyen', 'observan', 'queda', 'establecida'
+  ]);
+
+  if (commonVerbs.has(token)) return true;
+
+  if (token.length <= 3) return false;
+
+  return /(?:ar|er|ir|ado|ido|ando|iendo|aba|aban|ía|ían|ará|erá|irá|ría|rían|aste|iste|aron|ieron|ado|ido|ando|iendo)$/u.test(token);
+}
+
 /**
  * Divide por comas cuando no hay marcadores discursivos.
  */
@@ -262,7 +423,7 @@ function splitByCommas(sentence: string): Clause[] {
   // Solo dividir si la coma separa cláusulas sustantivas (al menos 3 palabras a cada lado)
   const parts = sentence.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-  if (parts.length <= 1 || parts.some(p => p.split(/\s+/).length < 2)) {
+  if (parts.length <= 1 || parts.some(p => !looksClauseLike(p))) {
     return [{
       text: cleanClauseText(sentence),
       markers: [],

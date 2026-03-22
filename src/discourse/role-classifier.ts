@@ -66,10 +66,36 @@ export function classifyClauses(clauses: Clause[], language: Language = 'es'): A
 function inferRole(clause: Clause, allClauses: Clause[]): ClauseRole {
   // Si tiene marcadores explícitos, usar el de mayor prioridad
   if (clause.markers.length > 0) {
-    // Ordenar por prioridad si disponible, o usar el primero
+    const rolePriority: Record<MarkerRole, number> = {
+      conclusion: 100,
+      consequent: 95,
+      condition: 90,
+      premise: 85,
+      biconditional: 80,
+      negation: 79,
+      universal: 78,
+      existential: 78,
+      necessity: 77,
+      possibility: 77,
+      temporal: 76,
+      temporal_next: 76,
+      temporal_until: 76,
+      temporal_always: 76,
+      temporal_eventually: 76,
+      and: 60,
+      or: 60,
+      adversative: 55,
+    };
+
     const primaryMarker = clause.markers.reduce((best, current) => {
-      // Si ambos son iguales, mantener el primero
-      return best;
+      const currentScore = rolePriority[current.role] * 100 + (current.position >= 0 ? 0 : 0);
+      const bestScore = rolePriority[best.role] * 100 + (best.position >= 0 ? 0 : 0);
+
+      if (currentScore !== bestScore) {
+        return currentScore > bestScore ? current : best;
+      }
+
+      return current.text.length > best.text.length ? current : best;
     });
 
     return markerRoleToClauseRole(primaryMarker.role);
@@ -152,6 +178,14 @@ function extractModifiers(clause: Clause, _language: Language): ClauseModifier[]
       case 'temporal_eventually':
         modifiers.push({ type: 'temporal_eventually', text: marker.text });
         break;
+    }
+
+    if (marker.text === 'siempre que' || marker.text === 'siempre y cuando') {
+      modifiers.push({ type: 'temporal_always', text: marker.text });
+    }
+
+    if (/\b(ignora|ignoran|desconoce|desconocen)\b/u.test(marker.text)) {
+      modifiers.push({ type: 'negation', text: marker.text });
     }
   }
 

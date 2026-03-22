@@ -9,6 +9,7 @@ import {
   CONJUNCTION_ES,
   DISJUNCTION_ES,
   NEGATION_ES,
+  GENERAL_TO_PARTICULAR_CHAIN_ES,
   FIRST_ORDER_UNIVERSAL_ES,
   MODAL_NECESSITY_ES,
   TEMPORAL_ES,
@@ -88,6 +89,18 @@ describe('formalize() — Español', () => {
     expect(result.ok).toBe(true);
     expect(result.atoms.size).toBeGreaterThan(1);
     expect(result.formulas.length).toBeGreaterThan(1);
+  });
+
+  it('formaliza una cadena general→particular con derivaciones intermedias explícitas', () => {
+    const result = formalize(GENERAL_TO_PARTICULAR_CHAIN_ES, {
+      profile: 'classical.propositional',
+      language: 'es',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.stCode).toContain('derive CALIENTE_SANGRE_TIENE');
+    expect(result.stCode).toContain('derive TEMPERATURA_REGULAR_PUEDE');
+    expect(result.stCode).toContain('TEMPERATURA_REGULAR_PERROS_PUEDEN');
   });
 });
 

@@ -224,6 +224,12 @@ export interface AtomEntry {
   predicate?: string;
   /** Para first-order: variables/constantes */
   terms?: string[];
+  /** Huella semántica ligera para unificación */
+  subject?: string;
+  object?: string;
+  polarity?: 'positive' | 'negative';
+  relationKind?: 'copula' | 'action' | 'unknown';
+  keywords?: string[];
 }
 
 // ── Fórmulas ──────────────────────────────────────────────────

@@ -56,6 +56,8 @@ export const MARKERS_ES: MarkerDefinition[] = [
 
   // ── Conjunción ──────────────────────────────────
   { text: 'además de que', role: 'and', language: 'es', priority: 7 },
+  { text: 'no solo', role: 'and', language: 'es', priority: 7 },
+  { text: 'sino que', role: 'and', language: 'es', priority: 7 },
   { text: 'y además', role: 'and', language: 'es', priority: 6 },
   { text: 'así como', role: 'and', language: 'es', priority: 6 },
   { text: 'asimismo', role: 'and', language: 'es', priority: 6 },
@@ -66,6 +68,7 @@ export const MARKERS_ES: MarkerDefinition[] = [
 
   // ── Disyunción ──────────────────────────────────
   { text: 'o bien', role: 'or', language: 'es', priority: 6 },
+  { text: 'ni que', role: 'or', language: 'es', priority: 6 },
   { text: 'ya sea', role: 'or', language: 'es', priority: 6 },
   { text: 'ya sea que', role: 'or', language: 'es', priority: 7 },
   { text: 'o', role: 'or', language: 'es', priority: 1 },
@@ -117,6 +120,18 @@ export const MARKERS_ES: MarkerDefinition[] = [
 
   // ── Modal: Necesidad ────────────────────────────
   { text: 'es necesario que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'se sabe que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'sabe que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'saben que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'sabemos que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'conoce que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'conocen que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'conoce', role: 'necessity', language: 'es', priority: 6 },
+  { text: 'conocen', role: 'necessity', language: 'es', priority: 6 },
+  { text: 'ignora que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'ignoran que', role: 'necessity', language: 'es', priority: 8 },
+  { text: 'ignora', role: 'necessity', language: 'es', priority: 6 },
+  { text: 'ignoran', role: 'necessity', language: 'es', priority: 6 },
   { text: 'necesariamente', role: 'necessity', language: 'es', priority: 7 },
   { text: 'obligatoriamente', role: 'necessity', language: 'es', priority: 7 },
   { text: 'es obligatorio', role: 'necessity', language: 'es', priority: 7 },
@@ -139,9 +154,12 @@ export const MARKERS_ES: MarkerDefinition[] = [
 
   // ── Temporales ──────────────────────────────────
   { text: 'después de que', role: 'temporal_next', language: 'es', priority: 7 },
+  { text: 'en el siguiente ciclo', role: 'temporal_next', language: 'es', priority: 8 },
+  { text: 'en el siguiente', role: 'temporal_next', language: 'es', priority: 7 },
   { text: 'después de', role: 'temporal_next', language: 'es', priority: 6 },
   { text: 'a continuación', role: 'temporal_next', language: 'es', priority: 6 },
   { text: 'hasta que', role: 'temporal_until', language: 'es', priority: 7 },
+  { text: 'eventualmente', role: 'temporal_eventually', language: 'es', priority: 7 },
   { text: 'mientras que', role: 'temporal', language: 'es', priority: 6 },
   { text: 'mientras', role: 'temporal', language: 'es', priority: 5 },
   { text: 'antes de que', role: 'temporal', language: 'es', priority: 7 },

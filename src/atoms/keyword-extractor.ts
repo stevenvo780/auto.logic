@@ -7,6 +7,15 @@
 import type { Language, Token } from '../types';
 import { tokenize, contentWords } from '../nlp/tokenizer';
 
+export interface SemanticHint {
+  subject?: string;
+  predicate?: string;
+  object?: string;
+  polarity: 'positive' | 'negative';
+  relationKind: 'copula' | 'action' | 'unknown';
+  keywords: string[];
+}
+
 /**
  * Extrae las palabras clave principales de un texto.
  * Filtra stopwords y selecciona las más significativas.
@@ -82,5 +91,54 @@ export function extractSubjectPredicate(
   return {
     subject: content[0].normalized,
     predicate: content.slice(1).map(t => t.normalized).join('_'),
+  };
+}
+
+export function extractSemanticHint(text: string, language: Language = 'es'): SemanticHint {
+  const tokens = tokenize(text, language);
+  const normalized = tokens.map((token) => token.normalized);
+  const keywords = extractKeywords(text, language, 5);
+  const polarity = normalized.includes('no') || normalized.includes('nunca') || normalized.includes('jamas')
+    ? 'negative'
+    : 'positive';
+
+  const copulaPatterns = language === 'es'
+    ? ['es', 'son', 'esta', 'estan', 'está', 'están', 'fue', 'sera', 'será']
+    : ['is', 'are', 'was', 'were', 'be'];
+  const copulaIndex = normalized.findIndex((token) => copulaPatterns.includes(token));
+
+  if (copulaIndex > 0) {
+    const subject = tokens
+      .slice(0, copulaIndex)
+      .filter((token) => !token.isStopword)
+      .map((token) => token.stem || token.normalized)
+      .join('_');
+    const predicateParts = tokens
+      .slice(copulaIndex + 1)
+      .filter((token) => !token.isStopword && token.normalized !== 'no')
+      .map((token) => token.stem || token.normalized);
+
+    return {
+      subject: subject || undefined,
+      predicate: predicateParts[0],
+      object: predicateParts.slice(1).join('_') || undefined,
+      polarity,
+      relationKind: 'copula',
+      keywords,
+    };
+  }
+
+  const content = tokens.filter((token) => !token.isStopword && token.normalized !== 'no');
+  if (content.length === 0) {
+    return { polarity, relationKind: 'unknown', keywords };
+  }
+
+  return {
+    subject: content[0] ? (content[0].stem || content[0].normalized) : undefined,
+    predicate: content[1] ? (content[1].stem || content[1].normalized) : (content[0].stem || content[0].normalized),
+    object: content.slice(2).map((token) => token.stem || token.normalized).join('_') || undefined,
+    polarity,
+    relationKind: content.length >= 2 ? 'action' : 'unknown',
+    keywords,
   };
 }
