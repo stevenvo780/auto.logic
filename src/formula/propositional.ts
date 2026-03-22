@@ -202,34 +202,75 @@ function buildSentenceFormulas(
 
     case 'complex': {
       // Oraciones complejas con premisas y conclusiones explícitas
+      // "Puesto que X, Y" → genera X -> Y (causal) + axiom X + derive Y
       const premiseClauses = clauses.filter(c => c.role === 'premise');
       const conclusionClauses = clauses.filter(c => c.role === 'conclusion');
 
-      // Generar axiomas para premisas
-      for (const pClause of premiseClauses) {
-        const atom = resolveAtom(pClause.text, globalMap, allAtoms);
-        const atomStr = applyModifiers(atom, pClause.modifiers.map(m => m.type));
-        formulas.push({
-          formula: atomStr,
-          stType: 'axiom',
-          label: `premisa_${label++}`,
-          sourceText: pClause.text,
-          sourceSentence: sentenceIdx,
-          comment: `Premisa: "${pClause.text}"`,
+      if (premiseClauses.length > 0 && conclusionClauses.length > 0) {
+        // ── Generar la regla causal: premisa(s) → conclusión ──
+        const premiseAtoms = premiseClauses.map(pc => {
+          const atom = resolveAtom(pc.text, globalMap, allAtoms);
+          return applyModifiers(atom, pc.modifiers.map(m => m.type));
         });
-      }
+        const conclusionAtom = resolveAtom(conclusionClauses[0].text, globalMap, allAtoms);
+        const conclusionStr = applyModifiers(conclusionAtom, conclusionClauses[0].modifiers.map(m => m.type));
 
-      // Generar derivaciones para conclusiones
-      if (conclusionClauses.length > 0 && premiseClauses.length > 0) {
+        // Antecedente: si hay múltiples premisas, conjunción
+        const antecedent = premiseAtoms.length === 1
+          ? premiseAtoms[0]
+          : `(${premiseAtoms.join(` ${ST_OPERATORS.conjunction} `)})`;
+
+        formulas.push({
+          formula: `${antecedent} ${ST_OPERATORS.implication} ${conclusionStr}`,
+          stType: 'axiom',
+          label: `regla_${label++}`,
+          sourceText: sentence.original,
+          sourceSentence: sentenceIdx,
+          comment: `Causal: "${sentence.original}"`,
+        });
+
+        // Generar axiomas para cada premisa afirmada
+        for (const pClause of premiseClauses) {
+          const atom = resolveAtom(pClause.text, globalMap, allAtoms);
+          const atomStr = applyModifiers(atom, pClause.modifiers.map(m => m.type));
+          formulas.push({
+            formula: atomStr,
+            stType: 'axiom',
+            label: `premisa_${label++}`,
+            sourceText: pClause.text,
+            sourceSentence: sentenceIdx,
+            comment: `Premisa: "${pClause.text}"`,
+          });
+        }
+
+        // Generar derivación de la conclusión
+        const premiseLabels = formulas
+          .filter(f => f.comment?.startsWith('Premisa:') || f.comment?.startsWith('Causal:'))
+          .map(f => f.label);
         for (const cClause of conclusionClauses) {
           const atom = resolveAtom(cClause.text, globalMap, allAtoms);
+          const atomMod = applyModifiers(atom, cClause.modifiers.map(m => m.type));
           formulas.push({
-            formula: atom,
+            formula: atomMod,
             stType: 'derive',
             label: `conclusion_${label++}`,
             sourceText: cClause.text,
             sourceSentence: sentenceIdx,
             comment: `Conclusión: "${cClause.text}"`,
+          });
+        }
+      } else {
+        // Solo premisas sin conclusión → axiomas simples
+        for (const pClause of premiseClauses) {
+          const atom = resolveAtom(pClause.text, globalMap, allAtoms);
+          const atomStr = applyModifiers(atom, pClause.modifiers.map(m => m.type));
+          formulas.push({
+            formula: atomStr,
+            stType: 'axiom',
+            label: `premisa_${label++}`,
+            sourceText: pClause.text,
+            sourceSentence: sentenceIdx,
+            comment: `Premisa: "${pClause.text}"`,
           });
         }
       }

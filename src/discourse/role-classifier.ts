@@ -177,6 +177,12 @@ function inferSentenceType(clauses: AnalyzedClause[]): SentenceType {
   const hasConsRole = clauses.some(c => c.role === 'consequent');
   if (hasCondRole && hasConsRole) return 'conditional';
 
+  // Si hay premisas Y conclusiones explícitas → complex (más específico que modal/universal)
+  // Ej: "Puesto que X, necesariamente Y" → causal, no modal
+  const hasPremiseRole = clauses.some(c => c.role === 'premise');
+  const hasConclusionRole = clauses.some(c => c.role === 'conclusion');
+  if (hasPremiseRole && hasConclusionRole) return 'complex';
+
   if (allMarkerRoles.has('necessity') || allMarkerRoles.has('possibility')) return 'modal';
   if (allMarkerRoles.has('universal') || allMarkerRoles.has('existential')) {
     return allMarkerRoles.has('universal') ? 'universal' : 'existential';
@@ -187,10 +193,6 @@ function inferSentenceType(clauses: AnalyzedClause[]): SentenceType {
   if (allMarkerRoles.has('or')) return 'disjunction';
   if (allMarkerRoles.has('and')) return 'conjunction';
   if (allMarkerRoles.has('negation')) return 'negation';
-
-  if (clauses.some(c => c.role === 'conclusion') && clauses.some(c => c.role === 'premise')) {
-    return 'complex';
-  }
 
   return 'assertion';
 }

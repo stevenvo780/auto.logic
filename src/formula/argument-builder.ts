@@ -180,6 +180,38 @@ export function buildCrossSentenceDerivations(
     }
   }
 
+  // ── Instanciación Universal Proposicional ──────
+  // Si hay universal_instantiation + universal_generalization y una conclusión explícita
+  // sin condicionales, generar la regla implícita:
+  // "Todos F buscan V" (universal) + "S es F" (instancia) → "S busca V" (conclusión)
+  // Proposicionalmente: UNIVERSAL & INSTANCIA -> CONCLUSIÓN
+  if (detectedPatterns.includes('universal_instantiation') &&
+      conditionals.length === 0 && existingDerives.length > 0) {
+    // Hay derives per-sentence (la conclusión explícita con "por lo tanto")
+    // y axiomas universales + instancias, pero no hay condicionales.
+    // Generar regla proposicional: premisas → conclusión
+    const premiseFormulas = positiveAxioms.map(a => a.formula);
+    if (premiseFormulas.length >= 2 && existingDerives.length > 0) {
+      const conclusionFormula = existingDerives[0].formula;
+      const antecedent = premiseFormulas.length === 1
+        ? premiseFormulas[0]
+        : `(${premiseFormulas.join(` ${ST_OPERATORS.conjunction} `)})`;
+      const premiseLabels = positiveAxioms.map(a => a.label);
+
+      // Solo agregar si no es redundante con la conclusión ya existente
+      if (!extra.some(e => e.formula === conclusionFormula)) {
+        extra.push({
+          formula: `${antecedent} ${ST_OPERATORS.implication} ${conclusionFormula}`,
+          stType: 'axiom',
+          label: `ui_regla_${labelCounter++}`,
+          sourceText: `Instanciación universal: ${premiseLabels.join(', ')} ⊢ ${conclusionFormula}`,
+          sourceSentence: existingDerives[0].sourceSentence,
+          comment: `Regla de instanciación universal (proposicional): ${antecedent} → ${conclusionFormula}`,
+        });
+      }
+    }
+  }
+
   return extra;
 }
 

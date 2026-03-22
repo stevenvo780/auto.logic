@@ -44,6 +44,23 @@ export function extractAtoms(
   const texts = clauseTexts.map(ct => ct.text);
   const corefGroups = resolveCoreferenceGroups(texts, language);
 
+  // 2b. Separar conclusiones de la coreferencia:
+  // Una cláusula con rol 'conclusion' no debe fusionarse con premisas/aserciones
+  // porque representa una proposición derivada distinta.
+  for (let i = 0; i < clauseTexts.length; i++) {
+    const ct = clauseTexts[i];
+    if (ct.role === 'conclusion') {
+      const rep = corefGroups.get(i);
+      // Si fue fusionada con otra cláusula que NO es conclusión, separarla
+      if (rep !== undefined && rep !== i) {
+        const repClause = clauseTexts[rep];
+        if (repClause && repClause.role !== 'conclusion') {
+          corefGroups.set(i, i); // se convierte en su propio representante
+        }
+      }
+    }
+  }
+
   // 3. Generar átomos únicos
   const atoms = new Map<string, string>();
   const entries: AtomEntry[] = [];
