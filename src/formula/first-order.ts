@@ -58,7 +58,7 @@ function buildFOSentence(
   let label = labelStart;
 
   // Detectar cuantificación universal
-  const hasUniversal = clauses.some(c => c.modifiers.some(m => m.type === 'universal'));
+  const hasUniversal = clauses.some(c => c.modifiers.some(m => m.type === 'universal' || (m.type === 'negation' && m.text.toLowerCase().startsWith('ning'))));
   const hasExistential = clauses.some(c => c.modifiers.some(m => m.type === 'existential'));
 
   if (hasUniversal && sentence.type === 'conditional') {
@@ -94,9 +94,36 @@ function buildFOSentence(
       if (atoms.length > 0) {
         const atom = atoms[0];
         const pred = atom.predicate || atom.id;
-        const variable = atom.terms?.[0] || 'x';
+        let variable = atom.terms?.[0] || 'x';
+        let formula = '';
+        
+        // Remove quantifiers from variable name if present
+        variable = variable.replace(/^(todo|toda|cada|ningun|ninguna|algun|alguna|el|la|los|las)_/i, '');
+
+        if (variable.length > 1) {
+          // It's a domain/class, e.g., "archivero_juramentado"
+          // We convert it to a predicate: ArchiveroJuramentado(x)
+          const domainPred = variable.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+          const varName = 'x';
+          
+          if (clause.modifiers.some(m => m.type === 'negation') || clause.text.toLowerCase().includes('ningún') || clause.text.toLowerCase().includes('ninguna')) {
+             // Universal negation: forall x (S(x) -> !P(x))
+             formula = `forall ${varName} (${formatPredicate(domainPred, varName)} ${ST_OPERATORS.implication} !(${formatPredicate(pred, varName)}))`;
+          } else {
+             // Universal affirmative: forall x (S(x) -> P(x))
+             formula = `forall ${varName} (${formatPredicate(domainPred, varName)} ${ST_OPERATORS.implication} ${formatPredicate(pred, varName)})`;
+          }
+        } else {
+          // Standard: forall x P(x)
+          if (clause.modifiers.some(m => m.type === 'negation')) {
+             formula = `forall ${variable} !(${formatPredicate(pred, variable)})`;
+          } else {
+             formula = `forall ${variable} ${formatPredicate(pred, variable)}`;
+          }
+        }
+
         formulas.push({
-          formula: `forall ${variable} ${formatPredicate(pred, variable)}`,
+          formula,
           stType: 'axiom',
           label: `a${label++}`,
           sourceText: clause.text,
@@ -106,15 +133,38 @@ function buildFOSentence(
       }
     }
   } else if (hasExistential) {
-    // "Existe X tal que Y"
+    // "Existe X tal que Y" → exists x (S(x) & P(x))
     for (const clause of clauses) {
       const atoms = getAtomsForClause(clause.text, allAtoms);
       if (atoms.length > 0) {
         const atom = atoms[0];
         const pred = atom.predicate || atom.id;
-        const variable = atom.terms?.[0] || 'x';
+        let variable = atom.terms?.[0] || 'x';
+        let formula = '';
+        
+        // Remove quantifiers from variable name if present
+        variable = variable.replace(/^(todo|toda|cada|ningun|ninguna|algun|alguna|algunos|el|la|los|las)_/i, '');
+
+        if (variable.length > 1) {
+          // Subject is a class
+          const domainPred = variable.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+          const varName = 'x';
+          
+          if (clause.modifiers.some(m => m.type === 'negation')) {
+             formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & !(${formatPredicate(pred, varName)}))`;
+          } else {
+             formula = `exists ${varName} (${formatPredicate(domainPred, varName)} & ${formatPredicate(pred, varName)})`;
+          }
+        } else {
+          if (clause.modifiers.some(m => m.type === 'negation')) {
+             formula = `exists ${variable} !(${formatPredicate(pred, variable)})`;
+          } else {
+             formula = `exists ${variable} ${formatPredicate(pred, variable)}`;
+          }
+        }
+
         formulas.push({
-          formula: `exists ${variable} ${formatPredicate(pred, variable)}`,
+          formula,
           stType: 'axiom',
           label: `a${label++}`,
           sourceText: clause.text,
@@ -169,7 +219,13 @@ function getAtomsForClause(text: string, allAtoms: AtomEntry[]): AtomEntry[] {
 
 function formatPredicate(predicate: string, variable: string): string {
   if (predicate.includes('(')) return predicate;
-  return `${predicate}(${variable})`;
+  const safeVar = (variable && variable.trim() !== '') ? variable : 'x';
+  const safePred = (predicate && predicate.trim() !== '') ? predicate : 'Pred';
+  // Avoid numeric variables or keywords being empty
+  if (!safeVar.match(/^[a-zA-Z_]\w*$/)) {
+    return `${safePred}(x)`;
+  }
+  return `${safePred}(${safeVar})`;
 }
 
 function tryInstantiation(

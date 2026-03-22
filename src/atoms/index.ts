@@ -120,7 +120,7 @@ export function extractAtoms(
     let atomId: string;
     const semantic = getSemantic(ct.text);
 
-    if (profile === 'classical.first_order') {
+    if (profile === 'classical.first_order' || profile === 'aristotelian.syllogistic' || profile === 'arithmetic') {
       // Para primer orden: extraer predicado y términos
       const sp = extractSubjectPredicate(ct.text, language);
       if (sp) {

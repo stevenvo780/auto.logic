@@ -40,12 +40,12 @@ export function buildFormulas(
     case 'intuitionistic.propositional':
     case 'paraconsistent.belnap':
     case 'probabilistic.basic':
-    case 'arithmetic':
       perSentence = buildPropositional(sentences, atomEntries, detectedPatterns, profile);
       break;
 
     case 'classical.first_order':
     case 'aristotelian.syllogistic':
+    case 'arithmetic':
       perSentence = buildFirstOrder(sentences, atomEntries, detectedPatterns);
       break;
 
