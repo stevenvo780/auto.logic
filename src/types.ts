@@ -62,6 +62,23 @@ export interface FormalizationResult {
   diagnostics: Diagnostic[];
   /** Resultado de validación con st-lang (si validateOutput=true) */
   stValidation?: { ok: boolean; errors: string[] };
+  /** Resultado de ejecución con st-lang (si validateOutput=true) */
+  stExecution?: STExecutionResult;
+}
+
+export interface STExecutionResult {
+  /** true si ST se ejecutó sin errores de parser/runtime */
+  ok: boolean;
+  /** Código de salida del runtime ST */
+  exitCode: number;
+  /** true si la ejecución fue abortada por timeout */
+  timedOut: boolean;
+  /** Duración total de la ejecución en milisegundos */
+  durationMs: number;
+  /** Mensajes de error resumidos */
+  errors: string[];
+  /** Estados devueltos por check/derive/prove ejecutados */
+  resultStatuses: string[];
 }
 
 // ── Segmentación ──────────────────────────────────────────────

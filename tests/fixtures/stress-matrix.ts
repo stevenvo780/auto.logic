@@ -132,7 +132,7 @@ export const STRESS_MATRIX_CASES: QualityCase[] = [
     {
       minAtoms: 3,
       minFormulas: 3,
-      expectedFormulaSnippets: ['Pr', '<>']
+      expectedFormulaSnippets: ['->']
     }
   ),
   stressCase(

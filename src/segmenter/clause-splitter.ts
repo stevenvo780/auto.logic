@@ -353,27 +353,25 @@ function normalizeClauses(clauses: Clause[]): Clause[] {
       continue;
     }
 
-    const currentLooksLikeClause = looksClauseLike(current.text);
-    const nextHasLowConnector = Boolean(next?.markers.some(marker =>
-      marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
-    ));
+    const currentText = current.text.toLowerCase();
+    const words = currentText.split(/\s+/).length;
+    
+    // Es un preámbulo si no parece cláusula, O termina en palabras de subordinación, O es muy corto
+    const isPreamble = 
+      currentText.endsWith(' que') ||
+      currentText.endsWith(' si') ||
+      currentText.endsWith(' como') ||
+      currentText.endsWith(' cuando') ||
+      currentText.endsWith(' donde') ||
+      currentText === 'que' || currentText === 'si' ||
+      (words <= 3 && !looksClauseLike(current.text));
 
-    if (!currentLooksLikeClause && next && current.markers.length === 0) {
-      const connectorMarkers = next.markers.filter(marker =>
-        marker.role === 'and' || marker.role === 'or' || marker.role === 'adversative'
-      );
-      const connector = connectorMarkers[0]?.text ?? '';
+    const isFragment = (!looksClauseLike(current.text) && current.markers.length === 0) || (isPreamble && next);
 
-      next.text = cleanClauseText(
-        `${current.text}${connector ? ` ${connector}` : ''} ${next.text}`
-      );
-
-      if (nextHasLowConnector) {
-        next.markers = next.markers.filter(marker =>
-          marker.role !== 'and' && marker.role !== 'or' && marker.role !== 'adversative'
-        );
-      }
-
+    if (isFragment && next) {
+      // Fusionar texto y marcadores.
+      // Si `next` tiene texto muy corto, el merge acumula todo limpiamente.
+      next.text = cleanClauseText(`${current.text} ${next.text}`);
       next.markers = [...current.markers, ...next.markers];
       continue;
     }

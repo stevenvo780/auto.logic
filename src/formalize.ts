@@ -10,7 +10,7 @@ import { analyzeDiscourse } from './discourse';
 import { extractAtoms } from './atoms';
 import { buildFormulas } from './formula';
 import { emitST } from './generator/st-emitter';
-import { validateST, validationToDiagnostics } from './generator/validator';
+import { executeST, executionToDiagnostics, validateST, validationToDiagnostics } from './generator/validator';
 
 /** Opciones por defecto */
 const DEFAULTS: Required<FormalizeOptions> = {
@@ -86,9 +86,17 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
 
     // ── 6. Validación (opcional) ────────────────
     let stValidation: { ok: boolean; errors: string[] } | undefined;
+    let stExecution:
+      | { ok: boolean; exitCode: number; timedOut: boolean; durationMs: number; errors: string[]; resultStatuses: string[] }
+      | undefined;
     if (opts.validateOutput) {
       stValidation = validateST(code);
       diagnostics.push(...validationToDiagnostics(stValidation));
+
+      if (stValidation.ok) {
+        stExecution = executeST(code);
+        diagnostics.push(...executionToDiagnostics(stExecution));
+      }
     }
 
     return {
@@ -99,6 +107,7 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
       formulas,
       diagnostics,
       stValidation,
+      stExecution,
     };
 
   } catch (error) {

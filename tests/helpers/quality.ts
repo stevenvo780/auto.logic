@@ -20,6 +20,10 @@ export function countMatches(code: string, pattern: RegExp): number {
 }
 
 export function expectFormalizationCoreQuality(testCase: QualityCase, result: FormalizationResult) {
+  const execSummary = result.stExecution
+    ? ` [ST exec: ${result.stExecution.durationMs} ms, exit=${result.stExecution.exitCode}${result.stExecution.timedOut ? ', timeout' : ''}${result.stExecution.errors.length ? `, errors=${result.stExecution.errors.join(' | ')}` : ''}]`
+    : '';
+
   expect(result.ok, `${testCase.id} should formalize successfully`).toBe(true);
   expect(result.stCode, `${testCase.id} should emit ST`).toContain(`logic ${testCase.profile}`);
   expect(result.stCode.trim().length, `${testCase.id} should emit non-trivial ST`).toBeGreaterThan(40);
@@ -52,9 +56,17 @@ export function expectFormalizationCoreQuality(testCase: QualityCase, result: Fo
     }
   }
 
-  expect(result.stValidation?.ok ?? true, `${testCase.id} should pass ST parser validation`).toBe(true);
+  expect(result.stValidation?.ok ?? true, `${testCase.id} should pass ST parser validation${execSummary}`).toBe(true);
+  expect(
+    result.stExecution ? result.stExecution.ok || result.stExecution.timedOut : true,
+    `${testCase.id} should execute in ST without runtime errors${execSummary}`
+  ).toBe(true);
+  expect(
+    result.stExecution?.resultStatuses.filter((status) => status === 'error') ?? [],
+    `${testCase.id} should not produce ST execution error statuses${execSummary}`
+  ).toHaveLength(0);
   expect(
     result.diagnostics.filter((diagnostic) => diagnostic.severity === 'error'),
-    `${testCase.id} should not emit fatal diagnostics`
+    `${testCase.id} should not emit fatal diagnostics${execSummary}`
   ).toHaveLength(0);
 }

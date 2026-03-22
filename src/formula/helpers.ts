@@ -11,6 +11,9 @@ const TEMPORAL_MODIFIER_TYPES = new Set([
   'temporal_eventually'
 ]);
 
+const MODAL_PROFILES = new Set<LogicProfile>(['modal.k', 'deontic.standard', 'epistemic.s5']);
+const TEMPORAL_PROFILES = new Set<LogicProfile>(['temporal.ltl']);
+
 function normalizeText(value: string): string {
   return value
     .normalize('NFD')
@@ -140,22 +143,34 @@ export function applyLogicalModifiers(
         output = wrapUnary(ST_OPERATORS.negation, output);
         break;
       case 'necessity':
-        output = wrapUnary(modalSyntax.necessity, output);
+        if (MODAL_PROFILES.has(profile)) {
+          output = wrapUnary(modalSyntax.necessity, output);
+        }
         break;
       case 'possibility':
-        output = wrapUnary(modalSyntax.possibility, output);
+        if (MODAL_PROFILES.has(profile)) {
+          output = wrapUnary(modalSyntax.possibility, output);
+        }
         break;
       case 'temporal_next':
-        output = `${temporalSyntax.next} ${output}`;
+        if (TEMPORAL_PROFILES.has(profile)) {
+          output = `${temporalSyntax.next} ${output}`;
+        }
         break;
       case 'temporal_until':
-        output = `${temporalSyntax.until} ${output}`;
+        if (TEMPORAL_PROFILES.has(profile)) {
+          output = `${temporalSyntax.until} ${output}`;
+        }
         break;
       case 'temporal_always':
-        output = wrapUnary(temporalSyntax.always, output);
+        if (TEMPORAL_PROFILES.has(profile)) {
+          output = wrapUnary(temporalSyntax.always, output);
+        }
         break;
       case 'temporal_eventually':
-        output = wrapUnary(temporalSyntax.eventually, output);
+        if (TEMPORAL_PROFILES.has(profile)) {
+          output = wrapUnary(temporalSyntax.eventually, output);
+        }
         break;
     }
   }
