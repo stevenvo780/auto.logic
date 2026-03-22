@@ -35,10 +35,22 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
     'necessity', 'possibility',
     'temporal_next', 'temporal_always', 'temporal_eventually',
   ]);
+  
+  // Filtrar matches que dividen, pero asegurar que "and"/"or"/"adversative" solo dividan
+  // si realmente hay verbos a ambos lados (esto evita destruir oraciones por "y" intrascendentes).
   const splittingMatches = allMatches.filter(m => {
-    return !NON_SPLITTING_ROLES.has(m.marker.role);
+    if (NON_SPLITTING_ROLES.has(m.marker.role)) return false;
+    
+    // Si es conector débil, verificar si a su alrededor hay suficiente texto para justificar corte
+    if (['and', 'or', 'adversative'].includes(m.marker.role)) {
+      const left = sentence.slice(0, m.startPos);
+      const right = sentence.slice(m.endPos);
+      if (left.trim().split(/\s+/).length < 2 || right.trim().split(/\s+/).length < 2) return false;
+    }
+    return true;
   });
 
+  console.log("Splitting matches:", splittingMatches.map(m=>m.marker.text));
   if (splittingMatches.length === 0) {
     const coordinatedClauses = splitBySimpleCoordinators(sentence, allMatches);
     if (coordinatedClauses.length > 1) {
@@ -366,7 +378,7 @@ function normalizeClauses(clauses: Clause[]): Clause[] {
       currentText === 'que' || currentText === 'si' ||
       (words <= 3 && !looksClauseLike(current.text));
 
-    const isFragment = (!looksClauseLike(current.text) && current.markers.length === 0) || (isPreamble && next);
+    const isFragment = (!looksClauseLike(current.text) && current.markers.length === 0) || (isPreamble && current.markers.length === 0 && next);
 
     if (isFragment && next) {
       // Fusionar texto y marcadores.
@@ -393,7 +405,7 @@ function looksClauseLike(text: string): boolean {
     .map(token => token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
     .filter(Boolean);
 
-  if (tokens.length < 2) return false;
+  if (tokens.length === 0) return false;
 
   return tokens.some(token => isVerbLikeToken(token));
 }

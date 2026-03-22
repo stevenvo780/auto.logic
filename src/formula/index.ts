@@ -9,6 +9,7 @@ export { buildPropositional } from './propositional';
 export { buildFirstOrder } from './first-order';
 export { buildModal } from './modal';
 export { buildTemporal } from './temporal';
+export { buildProbabilistic } from './probabilistic';
 export { buildCrossSentenceDerivations } from './argument-builder';
 export { roleToOperator, profileSupportsOperator, ST_OPERATORS } from './connectors';
 
@@ -17,6 +18,7 @@ import { buildPropositional } from './propositional';
 import { buildFirstOrder } from './first-order';
 import { buildModal } from './modal';
 import { buildTemporal } from './temporal';
+import { buildProbabilistic } from './probabilistic';
 import { buildCrossSentenceDerivations } from './argument-builder';
 
 /**
@@ -37,9 +39,9 @@ export function buildFormulas(
     case 'classical.propositional':
     case 'intuitionistic.propositional':
     case 'paraconsistent.belnap':
-    case 'arithmetic':
     case 'probabilistic.basic':
-      perSentence = buildPropositional(sentences, atomEntries, detectedPatterns);
+    case 'arithmetic':
+      perSentence = buildPropositional(sentences, atomEntries, detectedPatterns, profile);
       break;
 
     case 'classical.first_order':

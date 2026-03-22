@@ -4,37 +4,9 @@
  * Construye fórmulas de lógica proposicional a partir de átomos con roles.
  * Genera fórmulas reales con conectivos: →, ∧, ∨, ¬, ↔
  */
-import type { AnalyzedSentence, AtomEntry, FormulaEntry, STStatementType, LogicProfile } from '../types';
+import type { AnalyzedSentence, AtomEntry, FormulaEntry, STStatementType } from '../types';
 import { ST_OPERATORS } from './connectors';
 import { applyLogicalModifiers, resolveAtomId } from './helpers';
-
-/**
- * Aplica reglas cuantitativas a un átomo base según el perfil lógico.
- * Útil para extraer `Pr(X) = Y` o ecuaciones aritméticas desde el texto original.
- */
-function applyQuantitativeExtraction(text: string, baseAtomStr: string, profile: LogicProfile): string {
-  if (profile === 'probabilistic.basic') {
-    const probMatch = text.match(/0\.\d+/);
-    const isPercentage = text.match(/(\d+(?:\.\d+)?)%/);
-    let pValue = probMatch ? probMatch[0] : null;
-    if (!pValue && isPercentage) {
-      pValue = (parseFloat(isPercentage[1]) / 100).toString();
-    }
-    if (pValue) {
-      return `(Pr(${baseAtomStr}) = ${pValue})`;
-    }
-  }
-
-  if (profile === 'arithmetic') {
-    // Busca patrones como "a + b = c" o "mod" y los pasa explícitamente a ST-lang en vez de usar átomos textuales
-    const mathMatch = text.match(/(\w+)\s*([\+\-\*\/]|mod)\s*(\w+)\s*=\s*(\w+)/);
-    if (mathMatch) {
-       return text; // Return the raw text equation!
-    }
-  }
-
-  return baseAtomStr;
-}
 
 /**
  * Construye fórmulas proposicionales para un conjunto de oraciones.
@@ -44,7 +16,6 @@ export function buildPropositional(
   sentences: AnalyzedSentence[],
   atomEntries: AtomEntry[],
   detectedPatterns: string[],
-  profile: LogicProfile = 'classical.propositional'
 ): FormulaEntry[] {
   const formulas: FormulaEntry[] = [];
   let labelCounter = 1;
@@ -55,7 +26,7 @@ export function buildPropositional(
   for (let sIdx = 0; sIdx < sentences.length; sIdx++) {
     const sentence = sentences[sIdx];
     const builtFormulas = buildSentenceFormulas(
-      sentence, atomEntries, globalClauseAtomMap, sIdx, labelCounter, detectedPatterns, profile
+      sentence, atomEntries, globalClauseAtomMap, sIdx, labelCounter, detectedPatterns,
     );
     formulas.push(...builtFormulas);
     labelCounter += builtFormulas.length;
@@ -113,20 +84,9 @@ function buildSentenceFormulas(
   sentenceIdx: number,
   labelStart: number,
   patterns: string[],
-  profile: LogicProfile
 ): FormulaEntry[] {
   const clauses = sentence.clauses;
   if (clauses.length === 0) return [];
-
-  const getStr = (clause: any) => {
-    let modTypes = clause?.modifiers ? clause.modifiers.map((m: any) => m.type) : [];
-    if (Array.isArray(clause) && typeof clause[0] === 'string') modTypes = clause;
-    const text = typeof clause === 'string' ? clause : clause.text;
-    const isExplicitNeg = Array.isArray(clause); 
-    const atomId = resolveAtomId(text, allAtoms, globalMap);
-    const modStr = applyLogicalModifiers(atomId, isExplicitNeg ? clause : modTypes, profile);
-    return applyQuantitativeExtraction(text, modStr, profile);
-  };
 
   const formulas: FormulaEntry[] = [];
   let label = labelStart;
@@ -134,26 +94,36 @@ function buildSentenceFormulas(
   switch (sentence.type) {
     case 'conditional': {
       let conditionClauses = clauses.filter(c => c.role === 'condition');
-      let consequentClauses = clauses.filter(c => c.role === 'consequent' || c.role === 'conclusion' || c.role === 'assertion');
+      let consequentClauses = clauses.filter(c =>
+        c.role === 'consequent' || c.role === 'conclusion' || c.role === 'assertion'
+      );
 
+      // Fallback: si no hay cláusula explícita de condición, inferir por posición
       if (conditionClauses.length === 0 && clauses.length >= 2) {
-        const nonConsequent = clauses.filter(c => c.role !== 'consequent' && c.role !== 'conclusion');
+        const nonConsequent = clauses.filter(c =>
+          c.role !== 'consequent' && c.role !== 'conclusion'
+        );
         if (nonConsequent.length > 0) {
           conditionClauses = [nonConsequent[0]];
           consequentClauses = clauses.filter(c => c !== nonConsequent[0]);
         }
       }
 
-      if (conditionClauses.length > 0 && consequentClauses.length === 0) {
-        const nonConditions = clauses.filter(c => c.role !== 'condition');
-        if (nonConditions.length > 0) {
-          consequentClauses = nonConditions;
-        }
-      }
-
       if (conditionClauses.length > 0 && consequentClauses.length > 0) {
-        const antStr = getStr(conditionClauses[0]);
-        const consStr = getStr(consequentClauses[0]);
+        const antecedent = resolveAtomId(conditionClauses[0].text, allAtoms, globalMap);
+        const consequent = resolveAtomId(consequentClauses[0].text, allAtoms, globalMap);
+
+        // Aplicar negación si hay modificadores
+        const antStr = applyLogicalModifiers(
+          antecedent,
+          conditionClauses[0].modifiers.map(m => m.type),
+          'classical.propositional'
+        );
+        const consStr = applyLogicalModifiers(
+          consequent,
+          consequentClauses[0].modifiers.map(m => m.type),
+          'classical.propositional'
+        );
 
         formulas.push({
           formula: `${antStr} ${ST_OPERATORS.implication} ${consStr}`,
@@ -164,11 +134,18 @@ function buildSentenceFormulas(
           comment: `Condicional: "${sentence.original}"`,
         });
 
-        const supplementalClauses = clauses.filter(clause => clause !== conditionClauses[0] && clause !== consequentClauses[0]);
+        const supplementalClauses = clauses.filter(clause =>
+          clause !== conditionClauses[0] && clause !== consequentClauses[0]
+        );
 
         for (const clause of supplementalClauses) {
+          const atom = resolveAtomId(clause.text, allAtoms, globalMap);
           formulas.push({
-            formula: getStr(clause),
+            formula: applyLogicalModifiers(
+              atom,
+              clause.modifiers.map(m => m.type),
+              'classical.propositional'
+            ),
             stType: clause.role === 'conclusion' ? 'derive' : 'axiom',
             label: `hecho_${++label}`,
             sourceText: clause.text,
@@ -182,8 +159,10 @@ function buildSentenceFormulas(
 
     case 'biconditional': {
       if (clauses.length >= 2) {
+        const left = resolveAtomId(clauses[0].text, allAtoms, globalMap);
+        const right = resolveAtomId(clauses[1].text, allAtoms, globalMap);
         formulas.push({
-          formula: `${getStr(clauses[0])} ${ST_OPERATORS.biconditional} ${getStr(clauses[1])}`,
+          formula: `${applyLogicalModifiers(left, clauses[0].modifiers.map(m => m.type), 'classical.propositional')} ${ST_OPERATORS.biconditional} ${applyLogicalModifiers(right, clauses[1].modifiers.map(m => m.type), 'classical.propositional')}`,
           stType: 'axiom',
           label: `bicond_${label}`,
           sourceText: sentence.original,
@@ -195,10 +174,17 @@ function buildSentenceFormulas(
     }
 
     case 'conjunction': {
-      const atoms = clauses.map(c => getStr(c));
+      const atoms = clauses.map(c =>
+        applyLogicalModifiers(
+          resolveAtomId(c.text, allAtoms, globalMap),
+          c.modifiers.map(m => m.type),
+          'classical.propositional'
+        )
+      );
       if (atoms.length >= 2) {
+        const formula = atoms.join(` ${ST_OPERATORS.conjunction} `);
         formulas.push({
-          formula: atoms.join(` ${ST_OPERATORS.conjunction} `),
+          formula,
           stType: 'axiom',
           label: `conj_${label}`,
           sourceText: sentence.original,
@@ -219,10 +205,17 @@ function buildSentenceFormulas(
     }
 
     case 'disjunction': {
-      const atoms = clauses.map(c => getStr(c));
+      const atoms = clauses.map(c =>
+        applyLogicalModifiers(
+          resolveAtomId(c.text, allAtoms, globalMap),
+          c.modifiers.map(m => m.type),
+          'classical.propositional'
+        )
+      );
       if (atoms.length >= 2) {
+        const formula = atoms.join(` ${ST_OPERATORS.disjunction} `);
         formulas.push({
-          formula: atoms.join(` ${ST_OPERATORS.disjunction} `),
+          formula,
           stType: 'axiom',
           label: `disj_${label}`,
           sourceText: sentence.original,
@@ -235,10 +228,9 @@ function buildSentenceFormulas(
 
     case 'negation': {
       if (clauses.length > 0) {
-        const atomId = resolveAtomId(clauses[0].text, allAtoms, globalMap);
-        const modStr = applyLogicalModifiers(atomId, ['negation'], profile);
+        const atom = resolveAtomId(clauses[0].text, allAtoms, globalMap);
         formulas.push({
-          formula: applyQuantitativeExtraction(clauses[0].text, modStr, profile),
+          formula: applyLogicalModifiers(atom, ['negation'], 'classical.propositional'),
           stType: 'axiom',
           label: `neg_${label}`,
           sourceText: sentence.original,
@@ -250,14 +242,28 @@ function buildSentenceFormulas(
     }
 
     case 'complex': {
+      // Oraciones complejas con premisas y conclusiones explícitas
+      // "Puesto que X, Y" → genera X -> Y (causal) + axiom X + derive Y
       const premiseClauses = clauses.filter(c => c.role === 'premise');
       const conclusionClauses = clauses.filter(c => c.role === 'conclusion');
 
       if (premiseClauses.length > 0 && conclusionClauses.length > 0) {
-        const premiseAtoms = premiseClauses.map(pc => getStr(pc));
-        const conclusionStr = getStr(conclusionClauses[0]);
+        // ── Generar la regla causal: premisa(s) → conclusión ──
+        const premiseAtoms = premiseClauses.map(pc => {
+          const atom = resolveAtomId(pc.text, allAtoms, globalMap);
+          return applyLogicalModifiers(atom, pc.modifiers.map(m => m.type), 'classical.propositional');
+        });
+        const conclusionAtom = resolveAtomId(conclusionClauses[0].text, allAtoms, globalMap);
+        const conclusionStr = applyLogicalModifiers(
+          conclusionAtom,
+          conclusionClauses[0].modifiers.map(m => m.type),
+          'classical.propositional'
+        );
 
-        const antecedent = premiseAtoms.length === 1 ? premiseAtoms[0] : `(${premiseAtoms.join(` ${ST_OPERATORS.conjunction} `)})`;
+        // Antecedente: si hay múltiples premisas, conjunción
+        const antecedent = premiseAtoms.length === 1
+          ? premiseAtoms[0]
+          : `(${premiseAtoms.join(` ${ST_OPERATORS.conjunction} `)})`;
 
         formulas.push({
           formula: `${antecedent} ${ST_OPERATORS.implication} ${conclusionStr}`,
@@ -268,9 +274,12 @@ function buildSentenceFormulas(
           comment: `Causal: "${sentence.original}"`,
         });
 
+        // Generar axiomas para cada premisa afirmada
         for (const pClause of premiseClauses) {
+          const atom = resolveAtomId(pClause.text, allAtoms, globalMap);
+          const atomStr = applyLogicalModifiers(atom, pClause.modifiers.map(m => m.type), 'classical.propositional');
           formulas.push({
-            formula: getStr(pClause),
+            formula: atomStr,
             stType: 'axiom',
             label: `premisa_${label++}`,
             sourceText: pClause.text,
@@ -279,9 +288,15 @@ function buildSentenceFormulas(
           });
         }
 
+        // Generar derivación de la conclusión
+        const premiseLabels = formulas
+          .filter(f => f.comment?.startsWith('Premisa:') || f.comment?.startsWith('Causal:'))
+          .map(f => f.label);
         for (const cClause of conclusionClauses) {
+          const atom = resolveAtomId(cClause.text, allAtoms, globalMap);
+          const atomMod = applyLogicalModifiers(atom, cClause.modifiers.map(m => m.type), 'classical.propositional');
           formulas.push({
-            formula: getStr(cClause),
+            formula: atomMod,
             stType: 'derive',
             label: `conclusion_${label++}`,
             sourceText: cClause.text,
@@ -290,9 +305,12 @@ function buildSentenceFormulas(
           });
         }
       } else {
+        // Solo premisas sin conclusión → axiomas simples
         for (const pClause of premiseClauses) {
+          const atom = resolveAtomId(pClause.text, allAtoms, globalMap);
+          const atomStr = applyLogicalModifiers(atom, pClause.modifiers.map(m => m.type), 'classical.propositional');
           formulas.push({
-            formula: getStr(pClause),
+            formula: atomStr,
             stType: 'axiom',
             label: `premisa_${label++}`,
             sourceText: pClause.text,
@@ -305,15 +323,22 @@ function buildSentenceFormulas(
     }
 
     default: {
+      // Aserción simple o tipo no manejado arriba
       for (const clause of clauses) {
+        const atom = resolveAtomId(clause.text, allAtoms, globalMap);
+        const atomStr = applyLogicalModifiers(atom, clause.modifiers.map(m => m.type), 'classical.propositional');
+
         const isConclusion = clause.role === 'conclusion';
+
         formulas.push({
-          formula: getStr(clause),
+          formula: atomStr,
           stType: isConclusion ? 'derive' : 'axiom',
           label: isConclusion ? `conclusion_${label}` : `hecho_${label}`,
           sourceText: clause.text,
           sourceSentence: sentenceIdx,
-          comment: isConclusion ? `Conclusión: "${clause.text}"` : `Hecho: "${clause.text}"`,
+          comment: isConclusion
+            ? `Conclusión: "${clause.text}"`
+            : `Hecho: "${clause.text}"`,
         });
         label++;
       }
@@ -323,3 +348,4 @@ function buildSentenceFormulas(
 
   return formulas;
 }
+

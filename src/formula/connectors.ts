@@ -87,7 +87,7 @@ export function profileSupportsOperator(profile: LogicProfile, operator: string)
       return firstOrder.includes(operator);
     case 'arithmetic':
     case 'probabilistic.basic':
-      return propositional.includes(operator);
+      return [...propositional, '<>', '[]', 'Pr'].includes(operator);
     default:
       return propositional.includes(operator);
   }

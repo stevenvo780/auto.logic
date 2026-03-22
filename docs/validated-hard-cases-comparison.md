@@ -31,9 +31,9 @@ logic aristotelian.syllogistic
 interpret "Todo perito acreditado que actúa en causas penales es auxiliar de la justicia" as ACREDITADO_AUXILIAR_JUSTICIA_PENALES
 interpret "ningún auxiliar de la justicia con suspensión vigente puede emitir dictamen vinculante" as SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA
 interpret "todo dictamen vinculante integra necesariamente el expediente principal" as NECESARIAMENTE_VINCULANTE_EXPEDIENTE_PRINCIPAL
-interpret "docentes universitarios" as UNIVERSITARIOS_DOCENTES
+interpret "algunos peritos acreditados son además docentes universitarios" as UNIVERSITARIOS_ACREDITADOS_DOCENTES_ALGUNOS
 interpret "ningún docente universitario sin contrato activo actúa válidamente en causas penales" as UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE
-interpret "toda persona que integra el expediente principal interviene en una fase procesal reconocida." as EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL
+interpret "y toda persona que integra el expediente principal interviene en una fase procesal reconocida." as EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL
 interpret "Ningún perito acreditado que actúa en causas penales" as ACREDITADO_PENALES_NINGUN_PERITO
 interpret "tenga suspensión vigente puede emitir dictamen vinculante." as SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE
 
@@ -46,22 +46,22 @@ axiom a1 = forall x auxili(x)
 axiom a2 = SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA
 // Universal: "todo dictamen vinculante integra necesariamente el expediente principal"
 axiom a3 = forall x dictam(x)
-// Existencial: "docentes universitarios"
-axiom a4 = exists x universitari(x)
+// Existencial: "algunos peritos acreditados son además docentes universitarios"
+axiom a4 = exists x adem(x)
 // Instancia: "ningún docente universitario sin contrato activo actúa válidamente en causas penales"
 axiom a5 = UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE
-// Instancia: "toda persona que integra el expediente principal interviene en una fase procesal reconocida."
+// Instancia: "y toda persona que integra el expediente principal interviene en una fase procesal reconocida."
 axiom a6 = EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL
 // Instancia: "tenga suspensión vigente puede emitir dictamen vinculante."
 axiom a8 = SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE
-// Regla de instanciación universal (proposicional): (forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x universitari(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) → ACREDITADO_PENALES_NINGUN_PERITO
-axiom ui_regla_9 = (forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x universitari(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) -> ACREDITADO_PENALES_NINGUN_PERITO
+// Regla de instanciación universal (proposicional): (forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x adem(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) → ACREDITADO_PENALES_NINGUN_PERITO
+axiom ui_regla_9 = (forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x adem(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) -> ACREDITADO_PENALES_NINGUN_PERITO
 
 // Conclusión: "Ningún perito acreditado que actúa en causas penales"
 derive ACREDITADO_PENALES_NINGUN_PERITO from {a1, a2, a3, a4, a5, a6, a8, ui_regla_9}
 
 // ── Verificación ──────────────────────
-check valid ((forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x universitari(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) -> ACREDITADO_PENALES_NINGUN_PERITO)
+check valid ((forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & forall x dictam(x) & exists x adem(x) & UNIVERSITARIO_VALIDAMENTE_CONTRATO_DOCENTE & EXPEDIENTE_INTERVIENE_RECONOCIDA_PRINCIPAL & SUSPENSION_VINCULANTE_DICTAMEN_VIGENTE) -> ACREDITADO_PENALES_NINGUN_PERITO)
 
 ```
 
@@ -93,35 +93,34 @@ check valid ((forall x auxili(x) & SUSPENSION_VINCULANTE_AUXILIAR_JUSTICIA & for
 logic arithmetic
 
 // ── Proposiciones atómicas ────────────
-interpret "Para cualesquiera números naturales a, b y c a es múltiplo de 8" as CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS
+interpret "Para cualesquiera números naturales a, b y c" as CUALESQUIERA_NATURALES_NUMEROS_B
+interpret "a es múltiplo de 8" as MULTIPLO__8
 interpret "b es múltiplo de 3" as MULTIPLO_B__3
 interpret "3a es múltiplo de 24" as MULTIPLO__3A__24
 interpret "8b es múltiplo de 24" as MULTIPLO__8B__24
 interpret "dos números son múltiplos de 24" as MULTIPLOS_NUMEROS_DOS__24
-interpret "su suma" as SUMA
-interpret "es múltiplo de 24" as MULTIPLO__24
-interpret "c es cualquier número natural" as CUALQUIER_NATURAL_NUMERO_C
+interpret "su suma es múltiplo de 24" as MULTIPLO_SUMA__24
+interpret "además c es cualquier número natural" as CUALQUIER_NATURAL_ADEMAS_NUMERO
 interpret "24c es múltiplo de 24" as MULTIPLO__24C__24
 interpret "la suma de un múltiplo de 24 con otro múltiplo de 24 vuelve a ser múltiplo de 24." as MULTIPLO_MULTIPLO_MULTIPLO_VUELVE
-interpret "a es múltiplo de 8" as MULTIPLO__8
 interpret "c es natural" as NATURAL_C
 interpret "3a + 8b + 24c es múltiplo de 24." as MULTIPLO__24C__3A__8B
 
 // ── Estructura argumental ─────────────
 // Patrón detectado: hypothetical_syllogism, conditional_chain
 
-// Condicional: "Para cualesquiera números naturales a, b y c a es múltiplo de 8, b es múltiplo de 3, 3a es múltiplo de 24, 8b es múltiplo de 24"
-axiom regla_1 = CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS -> MULTIPLO__3A__24
+// Condicional: "Para cualesquiera números naturales a, b y c, a es múltiplo de 8, b es múltiplo de 3, 3a es múltiplo de 24, 8b es múltiplo de 24"
+axiom regla_1 = MULTIPLO__8 -> MULTIPLO__3A__24
+// Subcláusula condicional: "Para cualesquiera números naturales a, b y c"
+axiom hecho_2 = CUALESQUIERA_NATURALES_NUMEROS_B
 // Subcláusula condicional: "b es múltiplo de 3"
-axiom hecho_2 = MULTIPLO_B__3
+axiom hecho_3 = MULTIPLO_B__3
 // Subcláusula condicional: "8b es múltiplo de 24"
-axiom hecho_3 = MULTIPLO__8B__24
-// Condicional: "dos números son múltiplos de 24, su suma, es múltiplo de 24"
-axiom regla_4 = MULTIPLOS_NUMEROS_DOS__24 -> SUMA
-// Subcláusula condicional: "es múltiplo de 24"
-axiom hecho_5 = MULTIPLO__24
-// Condicional: "c es cualquier número natural, 24c es múltiplo de 24, la suma de un múltiplo de 24 con otro múltiplo de 24 vuelve a ser múltiplo de 24."
-axiom regla_6 = CUALQUIER_NATURAL_NUMERO_C -> MULTIPLO__24C__24
+axiom hecho_4 = MULTIPLO__8B__24
+// Condicional: "dos números son múltiplos de 24, su suma es múltiplo de 24"
+axiom regla_5 = MULTIPLOS_NUMEROS_DOS__24 -> MULTIPLO_SUMA__24
+// Condicional: "además c es cualquier número natural, 24c es múltiplo de 24, la suma de un múltiplo de 24 con otro múltiplo de 24 vuelve a ser múltiplo de 24."
+axiom regla_6 = CUALQUIER_NATURAL_ADEMAS_NUMERO -> MULTIPLO__24C__24
 // Subcláusula condicional: "la suma de un múltiplo de 24 con otro múltiplo de 24 vuelve a ser múltiplo de 24."
 axiom hecho_7 = MULTIPLO_MULTIPLO_MULTIPLO_VUELVE
 // Condicional: "a es múltiplo de 8, b es múltiplo de 3, c es natural, 3a + 8b + 24c es múltiplo de 24."
@@ -131,21 +130,23 @@ axiom hecho_9 = MULTIPLO_B__3
 // Subcláusula condicional: "3a + 8b + 24c es múltiplo de 24."
 axiom hecho_10 = MULTIPLO__24C__3A__8B
 
-// Modus Ponens: CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS → MULTIPLO__3A__24, CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS ⊢ MULTIPLO__3A__24
-derive MULTIPLO__3A__24 from {regla_1, hecho_2, hecho_3, regla_4, hecho_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
-// Silogismo Hipotético: CUALQUIER_NATURAL_NUMERO_C → ... → SUMA
-derive CUALQUIER_NATURAL_NUMERO_C -> SUMA from {regla_1, hecho_2, hecho_3, regla_4, hecho_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
-// Silogismo Hipotético: NATURAL_C → ... → SUMA
-derive NATURAL_C -> SUMA from {regla_1, hecho_2, hecho_3, regla_4, hecho_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
-// Silogismo Hipotético: CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS → ... → SUMA
-derive CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS -> SUMA from {regla_1, hecho_2, hecho_3, regla_4, hecho_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
-// Cadena condicional + Modus Ponens: CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS → ... → SUMA, CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS ⊢ SUMA
-derive SUMA from {regla_1, hecho_2, hecho_3, regla_4, hecho_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Modus Ponens: MULTIPLO__8 → MULTIPLO__3A__24, MULTIPLO__8 ⊢ MULTIPLO__3A__24
+derive MULTIPLO__3A__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Silogismo Hipotético: CUALQUIER_NATURAL_ADEMAS_NUMERO → ... → MULTIPLO_SUMA__24
+derive CUALQUIER_NATURAL_ADEMAS_NUMERO -> MULTIPLO_SUMA__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Silogismo Hipotético: NATURAL_C → ... → MULTIPLO_SUMA__24
+derive NATURAL_C -> MULTIPLO_SUMA__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Silogismo Hipotético: MULTIPLO__8 → ... → MULTIPLO_SUMA__24
+derive MULTIPLO__8 -> MULTIPLO_SUMA__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Silogismo Hipotético: MULTIPLOS_NUMEROS_DOS__24 → ... → MULTIPLO__3A__24
+derive MULTIPLOS_NUMEROS_DOS__24 -> MULTIPLO__3A__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
+// Cadena condicional + Modus Ponens: CUALQUIER_NATURAL_ADEMAS_NUMERO → ... → MULTIPLO_SUMA__24, CUALQUIER_NATURAL_ADEMAS_NUMERO ⊢ MULTIPLO_SUMA__24
+derive MULTIPLO_SUMA__24 from {regla_1, hecho_2, hecho_3, hecho_4, regla_5, regla_6, hecho_7, regla_8, hecho_9, hecho_10}
 
 // ── Verificación ──────────────────────
-check valid (CUALESQUIERA_NATURALES_MULTIPLO_NUMEROS -> MULTIPLO__3A__24)
-check valid (MULTIPLOS_NUMEROS_DOS__24 -> SUMA)
-check valid (CUALQUIER_NATURAL_NUMERO_C -> MULTIPLO__24C__24)
+check valid (MULTIPLO__8 -> MULTIPLO__3A__24)
+check valid (MULTIPLOS_NUMEROS_DOS__24 -> MULTIPLO_SUMA__24)
+check valid (CUALQUIER_NATURAL_ADEMAS_NUMERO -> MULTIPLO__24C__24)
 check valid (NATURAL_C -> MULTIPLO__8)
 
 ```
@@ -187,7 +188,6 @@ interpret "La empresa debe despachar el equipo." as DESPACHAR_EMPRESA_EQUIPO_DEB
 interpret "notificar imposibilidad justificada" as IMPOSIBILIDAD_JUSTIFICADA_NOTIFICAR
 interpret "no hubo notificación de imposibilidad justificada" as IMPOSIBILIDAD_NOTIFICACION_JUSTIFICADA_HUBO
 interpret "el contrato no fue firmado por la directora" as DIRECTORA_CONTRATO_FIRMADO_NO
-interpret "sí firmó el contrato" as CONTRATO_FIRMO_SI
 
 // ── Estructura argumental ─────────────
 // Patrón detectado: modus_ponens, hypothetical_syllogism, conditional_chain, conjunction_introduction
@@ -208,17 +208,17 @@ axiom hecho_6 = IMPOSIBILIDAD_JUSTIFICADA_NOTIFICAR
 axiom neg_7 = !(IMPOSIBILIDAD_NOTIFICACION_JUSTIFICADA_HUBO)
 // Negación: "el contrato no fue firmado por la directora"
 axiom neg_8 = !(DIRECTORA_CONTRATO_FIRMADO_NO)
-// Conjunción: "el apoderado sí tenía poder vigente, sí firmó el contrato"
-axiom conj_9 = APODERADO_VIGENTE_PODER & CONTRATO_FIRMO_SI
-// Hecho: "el pago inicial fue consignado en la cuenta indicada."
+// Hecho: "el apoderado sí tenía poder vigente y sí firmó el contrato"
+axiom hecho_9 = APODERADO_VIGENTE_PODER
+// Hecho: "y el pago inicial fue consignado en la cuenta indicada."
 axiom hecho_10 = CONSIGNADO_INICIAL_PAGO
 
 // Conclusión: "La empresa debe despachar el equipo."
-derive DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, conj_9, hecho_10}
+derive DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, hecho_9, hecho_10}
 // Silogismo Hipotético: DIRECTORA_CONTRATO_FIRMADO → ... → DESPACHAR_EMPRESA_EQUIPO_DEBE
-derive DIRECTORA_CONTRATO_FIRMADO -> DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, conj_9, hecho_10}
+derive DIRECTORA_CONTRATO_FIRMADO -> DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, hecho_9, hecho_10}
 // Silogismo Hipotético: FORMALMENTE_ACUERDO_VALIDO → ... → DESPACHAR_EMPRESA_EQUIPO_DEBE
-derive FORMALMENTE_ACUERDO_VALIDO -> DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, conj_9, hecho_10}
+derive FORMALMENTE_ACUERDO_VALIDO -> DESPACHAR_EMPRESA_EQUIPO_DEBE from {regla_1, hecho_2, regla_3, hecho_4, regla_5, hecho_6, neg_7, neg_8, hecho_9, hecho_10}
 
 // ── Verificación ──────────────────────
 check valid (DIRECTORA_CONTRATO_FIRMADO -> FORMALMENTE_ACUERDO_VALIDO)
@@ -320,16 +320,15 @@ logic epistemic.s5
 
 // ── Proposiciones atómicas ────────────
 interpret "la llave maestra está en la caja roja" as MAESTRA_LLAVE_CAJA_ROJA
-interpret "que Bruno conoce el código" as CONOCE_CODIGO_BRUNO
+interpret "Bruno conoce el código" as CONOCE_CODIGO_BRUNO
 interpret "Bruno puede abrir el archivo" as ARCHIVO_BRUNO_PUEDE_ABRIR
 interpret "Bruno sabe el código" as CODIGO_BRUNO_SABE
 interpret "Carla sabe que Ana conoce esa implicación" as IMPLICACION_CONOCE_CARLA_SABE
-interpret "sabe" as SABE
+interpret "sabe que Bruno conoce el código" as CONOCE_CODIGO_BRUNO_SABE
 interpret "Carla también sabe que la llave maestra está en la caja roja" as TAMBIEN_MAESTRA_CARLA_LLAVE
 interpret "Diego sabe que Carla lo sabe" as DIEGO_CARLA_SABE_SABE
-interpret "Ana sin embargo no sabe dónde está la llave maestra" as EMBARGO_MAESTRA_DONDE_LLAVE
-interpret "todos saben que ningún archivo puede abrirse sin llave maestra" as ARCHIVO_ABRIRSE_MAESTRA_NINGUN
-interpret "sin código correcto." as CORRECTO_CODIGO
+interpret "Ana, sin embargo, no sabe dónde está la llave maestra" as EMBARGO_MAESTRA_DONDE_LLAVE
+interpret "y todos saben que ningún archivo puede abrirse sin llave maestra y sin código correcto." as CORRECTO_ARCHIVO_ABRIRSE_MAESTRA
 interpret "Carla sabe que Bruno puede abrir el archivo" as ARCHIVO_CARLA_BRUNO_PUEDE
 interpret "Ana todavía no sabe que Bruno puede abrir el archivo." as TODAVIA_ARCHIVO_BRUNO_PUEDE
 
@@ -343,25 +342,21 @@ axiom a2 = ARCHIVO_BRUNO_PUEDE_ABRIR
 axiom a3 = CODIGO_BRUNO_SABE
 // Epistémico S5: "Carla sabe que Ana conoce esa implicación"
 axiom a4 = K(K(K(IMPLICACION_CONOCE_CARLA_SABE)))
-// Epistémico S5: "sabe"
-axiom a5 = SABE
-// Epistémico S5: "que Bruno conoce el código"
-axiom a6 = CONOCE_CODIGO_BRUNO
+// Epistémico S5: "sabe que Bruno conoce el código"
+axiom a5 = CONOCE_CODIGO_BRUNO_SABE
 // Epistémico S5: "Carla también sabe que la llave maestra está en la caja roja"
-axiom a7 = K(TAMBIEN_MAESTRA_CARLA_LLAVE)
+axiom a6 = K(TAMBIEN_MAESTRA_CARLA_LLAVE)
 // Epistémico S5: "Diego sabe que Carla sabe todo eso"
-axiom a8 = K(DIEGO_CARLA_SABE_SABE)
-axiom a9 = !(EMBARGO_MAESTRA_DONDE_LLAVE)
-// Epistémico S5: "todos saben que ningún archivo puede abrirse sin llave maestra"
-axiom a10 = !(K(ARCHIVO_ABRIRSE_MAESTRA_NINGUN))
-// Epistémico S5: "sin código correcto."
-axiom a11 = CORRECTO_CODIGO
+axiom a7 = K(DIEGO_CARLA_SABE_SABE)
+axiom a8 = !(EMBARGO_MAESTRA_DONDE_LLAVE)
+// Epistémico S5: "y todos saben que ningún archivo puede abrirse sin llave maestra y sin código correcto."
+axiom a9 = !(K(CORRECTO_ARCHIVO_ABRIRSE_MAESTRA))
 // Epistémico S5: "Carla sabe que Bruno puede abrir el archivo"
-axiom a12 = K(ARCHIVO_CARLA_BRUNO_PUEDE)
+axiom a10 = K(ARCHIVO_CARLA_BRUNO_PUEDE)
 // Epistémico S5: "Diego sabe que Carla lo sabe"
-axiom a13 = K(DIEGO_CARLA_SABE_SABE)
+axiom a11 = K(DIEGO_CARLA_SABE_SABE)
 // Epistémico S5: "Ana todavía no sabe que Bruno puede abrir el archivo."
-axiom a14 = K(!(TODAVIA_ARCHIVO_BRUNO_PUEDE))
+axiom a12 = K(!(TODAVIA_ARCHIVO_BRUNO_PUEDE))
 
 // ── Verificación ──────────────────────
 check valid (K(MAESTRA_LLAVE_CAJA_ROJA -> K(CONOCE_CODIGO_BRUNO)))
@@ -396,45 +391,37 @@ check valid (K(MAESTRA_LLAVE_CAJA_ROJA -> K(CONOCE_CODIGO_BRUNO)))
 logic intuitionistic.propositional
 
 // ── Proposiciones atómicas ────────────
-interpret "Existe un procedimiento efectivo que" as PROCEDIMIENTO_EFECTIVO_EXISTE
-interpret "dado un número natural junto con una descomposición concreta de ese número como suma de dos naturales positivos" as DESCOMPOSICION_NATURALES_POSITIVOS_CONCRETA
+interpret "Existe un procedimiento efectivo que dado un número natural junto con una descomposición concreta de ese número como suma de dos naturales positivos" as DESCOMPOSICION_PROCEDIMIENTO_NATURALES_POSITIVOS
 interpret "produce un certificado verificable de dicha descomposición" as DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE
-interpret "se exhiben explícitamente el número 10, el número 3" as EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO
-interpret "el número 7" as NUMERO__7
-interpret "se muestra efectivamente que 10 es la suma de 3" as EFECTIVAMENTE_MUESTRA_SUMA__10
-interpret "7" as _7
+interpret "además, se exhiben explícitamente el número 10, el número 3 y el número 7, y se muestra efectivamente que 10 es la suma de 3 y 7" as EXPLICITAMENTE_EFECTIVAMENTE_EXHIBEN_MUESTRA
 interpret "todo número para el que se exhiba una descomposición certificada tiene una representación auditable" as DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE
-interpret "de toda representación auditable puede construirse un registro finito de verificación." as REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE
-interpret "Existe constructivamente un número con representación auditable" as CONSTRUCTIVAMENTE_REPRESENTACION_AUDITABLE_EXISTE
-interpret "registro finito de verificación" as VERIFICACION_REGISTRO_FINITO
+interpret "y de toda representación auditable puede construirse un registro finito de verificación." as REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE
+interpret "Existe constructivamente un número con representación auditable y registro finito de verificación" as CONSTRUCTIVAMENTE_REPRESENTACION_VERIFICACION_AUDITABLE
+interpret "concretamente, ese número es 10." as CONCRETAMENTE_NUMERO__10
 
 // ── Estructura argumental ─────────────
 // Patrón detectado: universal_generalization, universal_instantiation, conjunction_introduction
 
-// Hecho: "Existe un procedimiento efectivo que"
-axiom hecho_1 = PROCEDIMIENTO_EFECTIVO_EXISTE
-// Hecho: "dado un número natural junto con una descomposición concreta de ese número como suma de dos naturales positivos"
-axiom hecho_2 = DESCOMPOSICION_NATURALES_POSITIVOS_CONCRETA
+// Hecho: "Existe un procedimiento efectivo que dado un número natural junto con una descomposición concreta de ese número como suma de dos naturales positivos"
+axiom hecho_1 = DESCOMPOSICION_PROCEDIMIENTO_NATURALES_POSITIVOS
 // Hecho: "produce un certificado verificable de dicha descomposición"
-axiom hecho_3 = DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE
-// Conjunción: "se exhiben explícitamente el número 10, el número 3, el número 7, se muestra efectivamente que 10 es la suma de 3, 7"
-axiom conj_4 = EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO & NUMERO__7 & EFECTIVAMENTE_MUESTRA_SUMA__10 & _7
+axiom hecho_2 = DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE
+// Hecho: "además, se exhiben explícitamente el número 10, el número 3 y el número 7, y se muestra efectivamente que 10 es la suma de 3 y 7"
+axiom hecho_3 = EXPLICITAMENTE_EFECTIVAMENTE_EXHIBEN_MUESTRA
 // Hecho: "todo número para el que se exhiba una descomposición certificada tiene una representación auditable"
-axiom hecho_5 = DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE
-// Hecho: "de toda representación auditable puede construirse un registro finito de verificación."
-axiom hecho_6 = REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE
-// Hecho: "registro finito de verificación"
-axiom hecho_8 = VERIFICACION_REGISTRO_FINITO
+axiom hecho_4 = DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE
+// Hecho: "y de toda representación auditable puede construirse un registro finito de verificación."
+axiom hecho_5 = REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE
 // Hecho: "concretamente, ese número es 10."
-axiom hecho_9 = EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO
-// Regla de instanciación universal (proposicional): (PROCEDIMIENTO_EFECTIVO_EXISTE & DESCOMPOSICION_NATURALES_POSITIVOS_CONCRETA & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO & NUMERO__7 & EFECTIVAMENTE_MUESTRA_SUMA__10 & _7 & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & VERIFICACION_REGISTRO_FINITO & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO) → CONSTRUCTIVAMENTE_REPRESENTACION_AUDITABLE_EXISTE
-axiom ui_regla_10 = (PROCEDIMIENTO_EFECTIVO_EXISTE & DESCOMPOSICION_NATURALES_POSITIVOS_CONCRETA & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO & NUMERO__7 & EFECTIVAMENTE_MUESTRA_SUMA__10 & _7 & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & VERIFICACION_REGISTRO_FINITO & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO) -> CONSTRUCTIVAMENTE_REPRESENTACION_AUDITABLE_EXISTE
+axiom hecho_7 = CONCRETAMENTE_NUMERO__10
+// Regla de instanciación universal (proposicional): (DESCOMPOSICION_PROCEDIMIENTO_NATURALES_POSITIVOS & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EFECTIVAMENTE_EXHIBEN_MUESTRA & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & CONCRETAMENTE_NUMERO__10) → CONSTRUCTIVAMENTE_REPRESENTACION_VERIFICACION_AUDITABLE
+axiom ui_regla_8 = (DESCOMPOSICION_PROCEDIMIENTO_NATURALES_POSITIVOS & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EFECTIVAMENTE_EXHIBEN_MUESTRA & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & CONCRETAMENTE_NUMERO__10) -> CONSTRUCTIVAMENTE_REPRESENTACION_VERIFICACION_AUDITABLE
 
-// Conclusión: "Existe constructivamente un número con representación auditable"
-derive CONSTRUCTIVAMENTE_REPRESENTACION_AUDITABLE_EXISTE from {hecho_1, hecho_2, hecho_3, conj_4, hecho_5, hecho_6, hecho_8, hecho_9, ui_regla_10}
+// Conclusión: "Existe constructivamente un número con representación auditable y registro finito de verificación"
+derive CONSTRUCTIVAMENTE_REPRESENTACION_VERIFICACION_AUDITABLE from {hecho_1, hecho_2, hecho_3, hecho_4, hecho_5, hecho_7, ui_regla_8}
 
 // ── Verificación ──────────────────────
-check valid ((PROCEDIMIENTO_EFECTIVO_EXISTE & DESCOMPOSICION_NATURALES_POSITIVOS_CONCRETA & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO & NUMERO__7 & EFECTIVAMENTE_MUESTRA_SUMA__10 & _7 & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & VERIFICACION_REGISTRO_FINITO & EXPLICITAMENTE_EXHIBEN_NUMERO_NUMERO) -> CONSTRUCTIVAMENTE_REPRESENTACION_AUDITABLE_EXISTE)
+check valid ((DESCOMPOSICION_PROCEDIMIENTO_NATURALES_POSITIVOS & DESCOMPOSICION_CERTIFICADO_VERIFICABLE_PRODUCE & EXPLICITAMENTE_EFECTIVAMENTE_EXHIBEN_MUESTRA & DESCOMPOSICION_REPRESENTACION_CERTIFICADA_AUDITABLE & REPRESENTACION_VERIFICACION_CONSTRUIRSE_AUDITABLE & CONCRETAMENTE_NUMERO__10) -> CONSTRUCTIVAMENTE_REPRESENTACION_VERIFICACION_AUDITABLE)
 
 ```
 
@@ -469,7 +456,7 @@ logic modal.k
 interpret "un protocolo criptográfico usa una clave comprometida" as CRIPTOGRAFICO_COMPROMETIDA_PROTOCOLO_CLAVE
 interpret "el canal no es seguro" as SEGURO_CANAL_NO
 interpret "toda transmisión de credenciales por ese canal es riesgosa" as CREDENCIALES_TRANSMISION_RIESGOSA_CANAL
-interpret "es necesario que el protocolo actualmente en uso emplea una clave comprometida." as COMPROMETIDA_ACTUALMENTE_NECESARIO_PROTOCOLO
+interpret "y es necesario que el protocolo actualmente en uso emplea una clave comprometida." as COMPROMETIDA_ACTUALMENTE_NECESARIO_PROTOCOLO
 interpret "Es necesario que toda transmisión de credenciales por ese protocolo sea riesgosa." as CREDENCIALES_TRANSMISION_NECESARIO_PROTOCOLO
 
 // ── Estructura argumental ─────────────
@@ -483,7 +470,7 @@ axiom a2 = !(SEGURO_CANAL_NO)
 axiom a3 = [](!(SEGURO_CANAL_NO) -> CREDENCIALES_TRANSMISION_RIESGOSA_CANAL)
 // Consecuente modal contextual: "toda transmisión de credenciales por ese canal es riesgosa"
 axiom a4 = CREDENCIALES_TRANSMISION_RIESGOSA_CANAL
-// Modal K: "es necesario que el protocolo actualmente en uso emplea una clave comprometida."
+// Modal K: "y es necesario que el protocolo actualmente en uso emplea una clave comprometida."
 axiom a5 = [](COMPROMETIDA_ACTUALMENTE_NECESARIO_PROTOCOLO)
 // Modal K: "Es necesario que toda transmisión de credenciales por ese protocolo sea riesgosa."
 axiom a6 = [](CREDENCIALES_TRANSMISION_NECESARIO_PROTOCOLO)
@@ -522,45 +509,38 @@ check valid ([](!(SEGURO_CANAL_NO) -> CREDENCIALES_TRANSMISION_RIESGOSA_CANAL))
 logic paraconsistent.belnap
 
 // ── Proposiciones atómicas ────────────
-interpret "El expediente clínico digital contiene la afirmación de que Nora recibió la vacuna X" as EXPEDIENTE_AFIRMACION_CONTIENE_CLINICO
-interpret "contiene la afirmación de que Nora no recibió la vacuna X" as AFIRMACION_CONTIENE_RECIBIO_VACUNA
+interpret "El expediente clínico digital contiene la afirmación de que Nora recibió la vacuna X y también contiene la afirmación de que Nora no recibió la vacuna X" as EXPEDIENTE_AFIRMACION_AFIRMACION_CONTIENE
 interpret "dos subsistemas registraron datos incompatibles" as INCOMPATIBLES_SUBSISTEMAS_REGISTRARON_DATOS
 interpret "el protocolo hospitalario establece que una paciente recibió la vacuna X" as HOSPITALARIO_PROTOCOLO_ESTABLECE_PACIENTE
 interpret "debe registrarse observación postvacunal" as REGISTRARSE_OBSERVACION_POSTVACUNAL_DEBE
-interpret "establece que" as ESTABLECE
-interpret "una paciente no recibió la vacuna X" as PACIENTE_RECIBIO_VACUNA_NO
+interpret "y también establece que una paciente no recibió la vacuna X" as ESTABLECE_PACIENTE_TAMBIEN_RECIBIO
 interpret "no debe cobrarse la dosis aplicada." as COBRARSE_APLICADA_DOSIS_DEBE
-interpret "La inconsistencia del expediente no autoriza a concluir cualquier cosa irrelevante sobre Nora" as INCONSISTENCIA_IRRELEVANTE_EXPEDIENTE_CUALQUIER
-interpret "sobre el hospital." as HOSPITAL
+interpret "La inconsistencia del expediente no autoriza a concluir cualquier cosa irrelevante sobre Nora o sobre el hospital." as INCONSISTENCIA_IRRELEVANTE_EXPEDIENTE_CUALQUIER
 interpret "Puede concluirse válidamente que debe registrarse observación postvacunal" as VALIDAMENTE_REGISTRARSE_OBSERVACION_POSTVACUNAL
 interpret "no se sigue de ahí una conclusión arbitraria cualquiera." as CONCLUSION_ARBITRARIA_CUALQUIERA_SIGUE
 
 // ── Estructura argumental ─────────────
 // Patrón detectado: modus_ponens, modus_tollens, hypothetical_syllogism, universal_generalization, universal_instantiation, conjunction_introduction
 
-// Conjunción: "El expediente clínico digital contiene la afirmación de que Nora recibió la vacuna X, contiene la afirmación de que Nora no recibió la vacuna X, dos subsistemas registraron datos incompatibles"
-axiom conj_1 = !(EXPEDIENTE_AFIRMACION_CONTIENE_CLINICO) & AFIRMACION_CONTIENE_RECIBIO_VACUNA & INCOMPATIBLES_SUBSISTEMAS_REGISTRARON_DATOS
+// Conjunción: "El expediente clínico digital contiene la afirmación de que Nora recibió la vacuna X y también contiene la afirmación de que Nora no recibió la vacuna X, dos subsistemas registraron datos incompatibles"
+axiom conj_1 = !(EXPEDIENTE_AFIRMACION_AFIRMACION_CONTIENE) & INCOMPATIBLES_SUBSISTEMAS_REGISTRARON_DATOS
 // Condicional: "el protocolo hospitalario establece que una paciente recibió la vacuna X, debe registrarse observación postvacunal"
 axiom regla_2 = HOSPITALARIO_PROTOCOLO_ESTABLECE_PACIENTE -> REGISTRARSE_OBSERVACION_POSTVACUNAL_DEBE
-// Condicional: "establece que, una paciente no recibió la vacuna X, no debe cobrarse la dosis aplicada."
-axiom regla_3 = !(!(PACIENTE_RECIBIO_VACUNA_NO)) -> COBRARSE_APLICADA_DOSIS_DEBE
-// Subcláusula condicional: "establece que"
-axiom hecho_4 = ESTABLECE
-// Hecho: "La inconsistencia del expediente no autoriza a concluir cualquier cosa irrelevante sobre Nora"
-axiom hecho_5 = !(INCONSISTENCIA_IRRELEVANTE_EXPEDIENTE_CUALQUIER)
-// Hecho: "sobre el hospital."
-axiom hecho_6 = HOSPITAL
+// Condicional: "y también establece que una paciente no recibió la vacuna X, no debe cobrarse la dosis aplicada."
+axiom regla_3 = !(!(ESTABLECE_PACIENTE_TAMBIEN_RECIBIO)) -> COBRARSE_APLICADA_DOSIS_DEBE
+// Hecho: "La inconsistencia del expediente no autoriza a concluir cualquier cosa irrelevante sobre Nora o sobre el hospital."
+axiom hecho_4 = !(INCONSISTENCIA_IRRELEVANTE_EXPEDIENTE_CUALQUIER)
 // Hecho: "que no debe cobrarse la dosis"
-axiom hecho_8 = !(COBRARSE_APLICADA_DOSIS_DEBE)
+axiom hecho_6 = !(COBRARSE_APLICADA_DOSIS_DEBE)
 // Negación: "no se sigue de ahí una conclusión arbitraria cualquiera."
-axiom neg_9 = !(CONCLUSION_ARBITRARIA_CUALQUIERA_SIGUE)
+axiom neg_7 = !(CONCLUSION_ARBITRARIA_CUALQUIERA_SIGUE)
 
 // Conclusión: "Puede concluirse válidamente que debe registrarse observación postvacunal"
-derive VALIDAMENTE_REGISTRARSE_OBSERVACION_POSTVACUNAL from {conj_1, regla_2, regla_3, hecho_4, hecho_5, hecho_6, hecho_8, neg_9}
+derive VALIDAMENTE_REGISTRARSE_OBSERVACION_POSTVACUNAL from {conj_1, regla_2, regla_3, hecho_4, hecho_6, neg_7}
 
 // ── Verificación ──────────────────────
 check valid (HOSPITALARIO_PROTOCOLO_ESTABLECE_PACIENTE -> REGISTRARSE_OBSERVACION_POSTVACUNAL_DEBE)
-check valid (!(!(PACIENTE_RECIBIO_VACUNA_NO)) -> COBRARSE_APLICADA_DOSIS_DEBE)
+check valid (!(!(ESTABLECE_PACIENTE_TAMBIEN_RECIBIO)) -> COBRARSE_APLICADA_DOSIS_DEBE)
 
 ```
 
@@ -597,42 +577,35 @@ interpret "hay fraude" as FRAUDE
 interpret "la probabilidad de que el sistema emita alerta roja es 0.93" as PROBABILIDAD_SISTEMA_ALERTA_EMITA
 interpret "no hay fraude" as FRAUDE_NO
 interpret "la probabilidad de alerta roja es 0.04." as PROBABILIDAD_ALERTA_ROJA__04
-interpret "cuando ya hubo alerta roja" as ALERTA_HUBO_ROJA
-interpret "la probabilidad de que la revisión manual encuentre inconsistencias es 0.80" as INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION
+interpret "Además, cuando ya hubo alerta roja, la probabilidad de que la revisión manual encuentre inconsistencias es 0.80" as INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION
 interpret "sí hubo fraude" as FRAUDE_HUBO_SI
-interpret "0.10" as _10__0
-interpret "no hubo fraude." as FRAUDE_HUBO_NO
-interpret "En una transacción concreta hubo alerta roja" as TRANSACCION_CONCRETA_ALERTA_HUBO
-interpret "la revisión manual encontró inconsistencias." as INCONSISTENCIAS_REVISION_ENCONTRO_MANUAL
+interpret "0.10 no hubo fraude." as FRAUDE_HUBO__10_NO
+interpret "En una transacción concreta hubo alerta roja y la revisión manual encontró inconsistencias." as INCONSISTENCIAS_TRANSACCION_CONCRETA_REVISION
 interpret "La probabilidad posterior de fraude es aproximadamente 79.15%." as APROXIMADAMENTE_PROBABILIDAD_POSTERIOR_FRAUDE
 
 // ── Estructura argumental ─────────────
 // Patrón detectado: modus_ponens, hypothetical_syllogism, conditional_chain, conjunction_introduction
 
 // Hecho: "La probabilidad previa de fraude en una transacción es 0.02."
-axiom hecho_1 = PROBABILIDAD_TRANSACCION_PREVIA_FRAUDE
+axiom hecho_1 = (Pr(PROBABILIDAD_TRANSACCION_PREVIA_FRAUDE) = 0.02)
 // Condicional: "hay fraude, la probabilidad de que el sistema emita alerta roja es 0.93"
-axiom regla_2 = FRAUDE -> PROBABILIDAD_SISTEMA_ALERTA_EMITA
+axiom regla_2 = FRAUDE -> (Pr(PROBABILIDAD_SISTEMA_ALERTA_EMITA) = 0.93)
 // Condicional: "no hay fraude, la probabilidad de alerta roja es 0.04."
-axiom regla_3 = !(FRAUDE_NO) -> PROBABILIDAD_ALERTA_ROJA__04
-// Condicional: "cuando ya hubo alerta roja, la probabilidad de que la revisión manual encuentre inconsistencias es 0.80, sí hubo fraude, 0.10, no hubo fraude."
-axiom regla_4 = FRAUDE_HUBO_SI -> INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION
-// Subcláusula condicional: "cuando ya hubo alerta roja"
-axiom hecho_5 = ALERTA_HUBO_ROJA
-// Subcláusula condicional: "0.10"
-axiom hecho_6 = _10__0
-// Subcláusula condicional: "no hubo fraude."
-axiom hecho_7 = !(FRAUDE_HUBO_NO)
-// Conjunción: "En una transacción concreta hubo alerta roja, la revisión manual encontró inconsistencias."
-axiom conj_8 = TRANSACCION_CONCRETA_ALERTA_HUBO & INCONSISTENCIAS_REVISION_ENCONTRO_MANUAL
+axiom regla_3 = !(FRAUDE_NO) -> (Pr(PROBABILIDAD_ALERTA_ROJA__04) = 0.04)
+// Condicional: "Además, cuando ya hubo alerta roja, la probabilidad de que la revisión manual encuentre inconsistencias es 0.80, sí hubo fraude, 0.10 no hubo fraude."
+axiom regla_4 = FRAUDE_HUBO_SI -> (Pr(INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION) = 0.80)
+// Subcláusula condicional: "0.10 no hubo fraude."
+axiom hecho_5 = (Pr(!(FRAUDE_HUBO__10_NO)) = 0.10)
+// Hecho: "En una transacción concreta hubo alerta roja y la revisión manual encontró inconsistencias."
+axiom hecho_6 = INCONSISTENCIAS_TRANSACCION_CONCRETA_REVISION
 
 // Conclusión: "La probabilidad posterior de fraude es aproximadamente 79.15%."
-derive APROXIMADAMENTE_PROBABILIDAD_POSTERIOR_FRAUDE from {hecho_1, regla_2, regla_3, regla_4, hecho_5, hecho_6, hecho_7, conj_8}
+derive (Pr(APROXIMADAMENTE_PROBABILIDAD_POSTERIOR_FRAUDE) = 0.7915000000000001) from {hecho_1, regla_2, regla_3, regla_4, hecho_5, hecho_6}
 
 // ── Verificación ──────────────────────
-check valid (FRAUDE -> PROBABILIDAD_SISTEMA_ALERTA_EMITA)
-check valid (!(FRAUDE_NO) -> PROBABILIDAD_ALERTA_ROJA__04)
-check valid (FRAUDE_HUBO_SI -> INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION)
+check valid (FRAUDE -> (Pr(PROBABILIDAD_SISTEMA_ALERTA_EMITA) = 0.93))
+check valid (!(FRAUDE_NO) -> (Pr(PROBABILIDAD_ALERTA_ROJA__04) = 0.04))
+check valid (FRAUDE_HUBO_SI -> (Pr(INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION) = 0.80))
 
 ```
 
@@ -664,16 +637,13 @@ check valid (FRAUDE_HUBO_SI -> INCONSISTENCIAS_PROBABILIDAD_ENCUENTRE_REVISION)
 logic epistemic.s5
 
 // ── Proposiciones atómicas ────────────
-interpret "Ana, Bruno y Carla asistieron juntos a una inducción pública en la que se anunció que" as ASISTIERON_INDUCCION_PUBLICA_ANUNCIO
-interpret "el tablero marca nivel rojo" as TABLERO_MARCA_NIVEL_ROJO
+interpret "Ana, Bruno y Carla asistieron juntos a una inducción pública en la que se anunció que el tablero marca nivel rojo" as ASISTIERON_INDUCCION_PUBLICA_ANUNCIO
 interpret "la válvula sur está abierta" as VALVULA_ABIERTA_SUR
 interpret "todos deben cerrar simultáneamente las líneas auxiliares" as SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS
 interpret "cada uno vio que los otros dos escucharon la instrucción" as INSTRUCCION_ESCUCHARON_UNO_VIO
 interpret "comprendieron la regla" as COMPRENDIERON_REGLA
-interpret "más tarde, el tablero marca nivel rojo a la vista de todos" as TABLERO_TARDE_MARCA_NIVEL
-interpret "la válvula sur aparece abierta en el panel común" as VALVULA_APARECE_ABIERTA_PANEL
-interpret "visible para todos" as VISIBLE_TODOS
-interpret "ninguno duda de la racionalidad operativa de los otros." as RACIONALIDAD_OPERATIVA_NINGUNO_DUDA
+interpret "más tarde, el tablero marca nivel rojo a la vista de todos y la válvula sur aparece abierta en el panel común, también visible para todos" as TABLERO_VALVULA_APARECE_ABIERTA
+interpret "además, ninguno duda de la racionalidad operativa de los otros." as RACIONALIDAD_OPERATIVA_NINGUNO_ADEMAS
 interpret "Cada uno sabe que debe cerrar las líneas auxiliares" as AUXILIARES_CERRAR_LINEAS_SABE
 interpret "sabe que los otros" as SABE
 interpret "lo saben." as SABEN
@@ -681,30 +651,23 @@ interpret "lo saben." as SABEN
 // ── Estructura argumental ─────────────
 // Patrón detectado: modus_ponens, universal_generalization, universal_instantiation, conjunction_introduction
 
-// Condicional modal: "Ana, Bruno y Carla asistieron juntos a una inducción pública en la que se anunció que, el tablero marca nivel rojo, la válvula sur está abierta, todos deben cerrar simultáneamente las líneas auxiliares"
-axiom a1 = TABLERO_MARCA_NIVEL_ROJO -> K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS)
-// Subcláusula modal: "Ana, Bruno y Carla asistieron juntos a una inducción pública en la que se anunció que"
-axiom a2 = ASISTIERON_INDUCCION_PUBLICA_ANUNCIO
+// Condicional modal: "Ana, Bruno y Carla asistieron juntos a una inducción pública en la que se anunció que el tablero marca nivel rojo, la válvula sur está abierta, todos deben cerrar simultáneamente las líneas auxiliares"
+axiom a1 = K(ASISTIERON_INDUCCION_PUBLICA_ANUNCIO -> K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS))
 // Subcláusula modal: "la válvula sur está abierta"
-axiom a3 = VALVULA_ABIERTA_SUR
-axiom a4 = INSTRUCCION_ESCUCHARON_UNO_VIO
-axiom a5 = COMPRENDIERON_REGLA
-axiom a6 = TABLERO_TARDE_MARCA_NIVEL
-axiom a7 = VALVULA_APARECE_ABIERTA_PANEL
-axiom a8 = VISIBLE_TODOS
-axiom a9 = !(RACIONALIDAD_OPERATIVA_NINGUNO_DUDA)
+axiom a2 = VALVULA_ABIERTA_SUR
+axiom a3 = INSTRUCCION_ESCUCHARON_UNO_VIO
+axiom a4 = COMPRENDIERON_REGLA
+axiom a5 = TABLERO_VALVULA_APARECE_ABIERTA
+axiom a6 = !(RACIONALIDAD_OPERATIVA_NINGUNO_ADEMAS)
 // Epistémico S5: "Cada uno sabe que debe cerrar las líneas auxiliares"
-axiom a10 = K(K(K(AUXILIARES_CERRAR_LINEAS_SABE)))
+axiom a7 = K(K(K(AUXILIARES_CERRAR_LINEAS_SABE)))
 // Epistémico S5: "sabe que los otros"
-axiom a11 = SABE
+axiom a8 = SABE
 // Epistémico S5: "lo saben."
-axiom a12 = SABEN
-
-// Modus Ponens: TABLERO_MARCA_NIVEL_ROJO → K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS), TABLERO_MARCA_NIVEL_ROJO ⊢ K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS)
-derive K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS) from {a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12}
+axiom a9 = SABEN
 
 // ── Verificación ──────────────────────
-check valid (TABLERO_MARCA_NIVEL_ROJO -> K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS))
+check valid (K(ASISTIERON_INDUCCION_PUBLICA_ANUNCIO -> K(SIMULTANEAMENTE_AUXILIARES_CERRAR_LINEAS)))
 
 ```
 
@@ -739,10 +702,9 @@ logic temporal.ltl
 interpret "una solicitud válida entra en cola" as SOLICITUD_VALIDA_ENTRA_COLA
 interpret "en el siguiente estado queda registrada" as REGISTRADA_SIGUIENTE_ESTADO_QUEDA
 interpret "toda solicitud registrada permanece registrada" as REGISTRADA_REGISTRADA_SOLICITUD_PERMANECE
-interpret "sea atendida" as ATENDIDA_SEA
-interpret "cancelada" as CANCELADA
+interpret "sea atendida o cancelada" as CANCELADA_ATENDIDA_SEA
 interpret "toda solicitud registrada que no sea cancelada será eventualmente atendida" as EVENTUALMENTE_REGISTRADA_SOLICITUD_CANCELADA
-interpret "toda solicitud atendida genera comprobante en el estado inmediatamente siguiente." as INMEDIATAMENTE_COMPROBANTE_SOLICITUD_SIGUIENTE
+interpret "y toda solicitud atendida genera comprobante en el estado inmediatamente siguiente." as INMEDIATAMENTE_COMPROBANTE_SOLICITUD_SIGUIENTE
 interpret "esa solicitud nunca es cancelada." as SOLICITUD_CANCELADA_NUNCA
 interpret "La solicitud quedará registrada" as REGISTRADA_SOLICITUD_QUEDARA
 interpret "eventualmente será atendida" as EVENTUALMENTE_ATENDIDA_SERA
@@ -753,21 +715,19 @@ interpret "después se emitirá su comprobante." as COMPROBANTE_DESPUES_EMITIRA
 
 // Temporal: "una solicitud válida entra en cola, en el siguiente estado queda registrada"
 axiom a1 = G(SOLICITUD_VALIDA_ENTRA_COLA -> next REGISTRADA_SIGUIENTE_ESTADO_QUEDA)
-// Temporal until: "toda solicitud registrada permanece registrada, sea atendida, cancelada"
-axiom a2 = REGISTRADA_REGISTRADA_SOLICITUD_PERMANECE until ATENDIDA_SEA
-// Subcláusula temporal: "cancelada"
-axiom a3 = CANCELADA
+// Temporal until: "toda solicitud registrada permanece registrada, sea atendida o cancelada"
+axiom a2 = REGISTRADA_REGISTRADA_SOLICITUD_PERMANECE until CANCELADA_ATENDIDA_SEA
 // Temporal eventually: "toda solicitud registrada que no sea cancelada será eventualmente atendida"
-axiom a4 = F(!(EVENTUALMENTE_REGISTRADA_SOLICITUD_CANCELADA))
-axiom a5 = INMEDIATAMENTE_COMPROBANTE_SOLICITUD_SIGUIENTE
+axiom a3 = F(!(EVENTUALMENTE_REGISTRADA_SOLICITUD_CANCELADA))
+axiom a4 = INMEDIATAMENTE_COMPROBANTE_SOLICITUD_SIGUIENTE
 // Temporal: "Ahora entra una solicitud válida en cola, esa solicitud nunca es cancelada."
-axiom a6 = SOLICITUD_VALIDA_ENTRA_COLA -> !(next SOLICITUD_CANCELADA_NUNCA)
+axiom a5 = SOLICITUD_VALIDA_ENTRA_COLA -> !(next SOLICITUD_CANCELADA_NUNCA)
 // Temporal eventually: "La solicitud quedará registrada"
-axiom a7 = REGISTRADA_SOLICITUD_QUEDARA
+axiom a6 = REGISTRADA_SOLICITUD_QUEDARA
 // Temporal eventually: "eventualmente será atendida"
-axiom a8 = F(EVENTUALMENTE_ATENDIDA_SERA)
+axiom a7 = F(EVENTUALMENTE_ATENDIDA_SERA)
 // Temporal eventually: "después se emitirá su comprobante."
-axiom a9 = next COMPROBANTE_DESPUES_EMITIRA
+axiom a8 = next COMPROBANTE_DESPUES_EMITIRA
 
 // ── Verificación ──────────────────────
 check valid (G(SOLICITUD_VALIDA_ENTRA_COLA -> next REGISTRADA_SIGUIENTE_ESTADO_QUEDA))

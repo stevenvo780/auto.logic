@@ -193,7 +193,7 @@ function ensureUniqueAtomId(
     return atomId;
   }
 
-  if (profile === 'probabilistic.basic') {
+  if (true) {
     return `${atomId}_${atomCounter}`;
   }
 
@@ -214,7 +214,7 @@ function shouldKeepSeparate(
 
   const sharedKeywords = representative.keywords.filter(keyword => candidate.keywords.includes(keyword));
 
-  if ((subjectConflict || predicateConflict || objectConflict) && sharedKeywords.length < 2) {
+  if ((subjectConflict || predicateConflict || objectConflict) && sharedKeywords.length < 3) {
     return true;
   }
 

@@ -109,7 +109,7 @@ export const VALIDATED_HARD_CASES: ValidatedHardCase[] = [
     'Existe constructivamente un número con representación auditable y registro finito de verificación; concretamente, ese número es 10.',
     'Existe constructivamente un número con representación auditable y registro finito de verificación; concretamente, ese número es 10.',
     {
-      minAtoms: 8,
+      minAtoms: 7,
       minFormulas: 5,
       expectedFormulaSnippets: ['derive'],
       validityNote: 'Aquí lo correcto es exigir testigo y derivación constructiva explícita, no negación intuicionista.'

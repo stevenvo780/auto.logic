@@ -1,7 +1,7 @@
 import type { AtomEntry, ClauseModifier, LogicProfile } from '../types';
 import { diceSimilarity } from '../atoms/coreference';
 import { bagOfStems } from '../atoms/keyword-extractor';
-import { ST_OPERATORS } from './connectors';
+import { ST_OPERATORS, profileSupportsOperator } from './connectors';
 
 const MODAL_MODIFIER_TYPES = new Set(['necessity', 'possibility']);
 const TEMPORAL_MODIFIER_TYPES = new Set([
@@ -143,12 +143,12 @@ export function applyLogicalModifiers(
         output = wrapUnary(ST_OPERATORS.negation, output);
         break;
       case 'necessity':
-        if (MODAL_PROFILES.has(profile)) {
+        if (profileSupportsOperator(profile, '<>')) {
           output = wrapUnary(modalSyntax.necessity, output);
         }
         break;
       case 'possibility':
-        if (MODAL_PROFILES.has(profile)) {
+        if (profileSupportsOperator(profile, '<>')) {
           output = wrapUnary(modalSyntax.possibility, output);
         }
         break;
