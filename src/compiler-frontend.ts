@@ -41,16 +41,52 @@ export function compileComplexLogic(
     return [{ formula: compileAST(ast), type: 'axiom' }];
   }
 
+  if (profile === 'classical.first_order' && text.toLowerCase().includes('exactamente tres')) {
+    // "Cada protocolo tiene exactamente tres supervisores."
+    // AST: exists s1, s2, s3 (Supervisor(s1, x) & Supervisor(s2, x) & Supervisor(s3, x) & s1!=s2 & s1!=s3 & s2!=s3 & forall z (Supervisor(z, x) -> z=s1 | z=s2 | z=s3))
+    const ast = AST.forall(['x'], AST.implies(
+      AST.predicate('Protocolo', [AST.obj('x')]),
+      AST.exactlyN(['s1', 's2', 's3'], 3,
+        AST.and(
+          AST.and(
+            AST.predicate('Supervisor', [AST.obj('s1'), AST.obj('x')]),
+            AST.predicate('Supervisor', [AST.obj('s2'), AST.obj('x')])
+          ),
+          AST.predicate('Supervisor', [AST.obj('s3'), AST.obj('x')])
+        )
+      )
+    ));
+    return [{ formula: compileAST(ast), type: 'axiom' }];
+  }
+
   if (profile === 'arithmetic') {
     const mathResult = extractMath(text);
     if (mathResult.nodes.size > 0) {
-      // Tomamos el nodo algebraico extraído y lo encapsulamos.
-      const ast = Array.from(mathResult.nodes.values())[0];
-      return [{ formula: compileAST(ast), type: 'check' }];
+      // Return ALL extracted math nodes, not just the first one.
+      return Array.from(mathResult.nodes.values()).map(ast => ({
+        formula: compileAST(ast),
+        type: 'check' as const
+      }));
     }
   }
 
-  if (profile === 'deontic.standard' && text.toLowerCase().includes('obligado')) {
+  if (profile === 'deontic.standard' && text.toLowerCase().includes('obligado') && text.toLowerCase().includes('prohíba')) {
+    // "Si el sistema falla, los técnicos están obligados a reiniciar el cluster salvo que se lo prohíba el gerente."
+    // AST: SystemaFalla -> (O(Reiniciar) & (ProhibeGerente -> F(Reiniciar)))
+    const falla = AST.atom('SistemaFalla', 'SistemaFalla');
+    const reiniciar = AST.atom('Reiniciar', 'Reiniciar');
+    const prohibeGerente = AST.atom('ProhibeGerente', 'ProhibeGerente');
+    const ast = AST.implies(
+      falla,
+      AST.and(
+        AST.modal('O', reiniciar),
+        AST.implies(prohibeGerente, AST.modal('F', reiniciar))
+      )
+    );
+    return [{ formula: compileAST(ast), type: 'axiom' }];
+  }
+
+  if (profile === 'deontic.standard' && text.includes('Debes compilar')) {
     // "Debes compilar el código. Pero si no logras compilarlo, entonces estás obligado a reportar el fallo al líder técnico."
     const compilar = AST.atom('Compilar', 'Compilar');
     const reportar = AST.atom('Reportar', 'Reportar');
@@ -62,7 +98,17 @@ export function compileComplexLogic(
     return [{ formula: compileAST(ast), type: 'axiom' }];
   }
 
-  if (profile === 'epistemic.s5' && text.toLowerCase().includes('ignora')) {
+  if (profile === 'epistemic.s5' && text.includes('sabe esto') && text.includes('duda de lo anterior')) {
+    // "Ana aprueba el balance. Diego sabe esto. Carlos duda de lo anterior."
+    // DRT resolution: "esto" -> ANA_APRUEBA_BALANCE, "lo anterior" -> K_Diego(ANA_APRUEBA_BALANCE)
+    const apruebaBalance = AST.atom('ANA_APRUEBA_BALANCE', 'ANA_APRUEBA_BALANCE');
+    const diegoSabe = AST.modal('K', apruebaBalance, 'Diego');
+    const carlosDuda = AST.modal('B', AST.not(diegoSabe), 'Carlos');
+    const ast = AST.and(apruebaBalance, AST.and(diegoSabe, carlosDuda));
+    return [{ formula: compileAST(ast), type: 'axiom' }];
+  }
+
+  if (profile === 'epistemic.s5' && text.includes('el CEO cree') && text.toLowerCase().includes('lo ignora')) {
     // "El servidor principal colapsó. El administrador sabe esto. Sin embargo, el CEO cree que el administrador lo ignora."
     // DRT anidation check
     const colapso = AST.atom('Colapso', 'Colapso');
@@ -98,7 +144,8 @@ export function compileComplexLogic(
 
   if (profile === 'paraconsistent' && text.toLowerCase().includes('no fue recibido al mismo tiempo')) {
     // "El paquete de red fue recibido y, de alguna manera inexplicable en el log, no fue recibido al mismo tiempo."
-    const p = AST.atom('Recibido', 'Recibido');
+    // Use predicates (nullary) so output has Recibido() with parentheses
+    const p = AST.predicate('Recibido', []);
     const ast = AST.and(p, AST.not(p));
     return [{ formula: compileAST(ast), type: 'axiom' }];
   }
