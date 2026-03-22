@@ -1,0 +1,51 @@
+{
+  "name": "@stevenvo780/autologic",
+  "version": "1.0.0",
+  "description": "Formalizador automático de texto natural a lógica formal ST, sin IA. NLP basado en reglas.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm run test"
+  },
+  "keywords": [
+    "logic",
+    "formalization",
+    "nlp",
+    "st-lang",
+    "natural-language",
+    "propositional-logic",
+    "first-order-logic",
+    "modal-logic"
+  ],
+  "author": "stevenvo780",
+  "license": "MIT",
+  "peerDependencies": {
+    "@stevenvo780/st-lang": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@stevenvo780/st-lang": "^3.0.0",
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
