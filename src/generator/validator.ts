@@ -3,8 +3,10 @@
  *
  * Intenta importar st-lang dinámicamente (peerDep).
  * Si no está disponible, reporta warning pero no falla.
+ *
+ * NOTE: child_process is loaded dynamically to keep this module
+ *       importable in browser/webpack contexts (Next.js client bundles).
  */
-import { spawnSync } from 'node:child_process';
 import type { Diagnostic } from '../types';
 
 interface ValidationResult {
@@ -75,6 +77,11 @@ export function validateST(code: string): ValidationResult {
 export function executeST(code: string): ExecutionResult {
   const startedAt = Date.now();
   try {
+    // Dynamic require to avoid breaking browser/webpack bundles
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cp = require('child_process');
+    const spawnSync: typeof import('child_process').spawnSync = cp.spawnSync;
+
     const runner = String.raw`
 const fs = require('node:fs');
 const input = fs.readFileSync(0, 'utf8');

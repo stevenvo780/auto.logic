@@ -4,3 +4,9 @@ coverage/
 *.tgz
 .DS_Store
 *.log
+.venv/
+src/model-web/
+distillation/.venv/
+distillation/*.log
+distillation/autologic-slm-*/
+sandbox/

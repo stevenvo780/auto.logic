@@ -1,10 +1,10 @@
 import { LogicNode, AST } from './formula/ast';
 import { compileAST } from './formula/ast-compiler';
 import { LogicProfile } from './types';
-import { runLocalInference } from './local-slm';
+import { runDistilledWebInference } from './local-slm-web';
 
 export interface LLMConfig {
-  provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'local';
+  provider: 'openai' | 'anthropic' | 'gemini' | 'custom' | 'ollama' | 'web-distilled';
   apiKey: string;
   endpoint?: string;
   model?: string;
@@ -47,8 +47,42 @@ Be precise. Do not include markdown codeblocks around the JSON.`;
 export async function parseTextWithLLM(text: string, profile: LogicProfile, config: LLMConfig): Promise<LLMParsedResult> {
   const systemPrompt = buildSystemPrompt(profile);
   
-  if (config.provider === 'local') {
-    return await runLocalInference(text, profile, systemPrompt);
+  if (config.provider === 'web-distilled') {
+     return await runDistilledWebInference(text, profile, systemPrompt, config.endpoint);
+  }
+
+  if (config.provider === 'ollama') {
+    // Interfaz nativa de Ollama para el servidor GPU
+    const url = config.endpoint || 'http://localhost:11434/api/chat';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model || 'qwen2.5:7b',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Formalize this text:\n\n${text}` }
+        ],
+        stream: false,
+        format: 'json',
+        options: {
+          temperature: 0.1
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Ollama API Error: ${response.status} - ${errText}`);
+    }
+
+    const data: any = await response.json();
+    const rawContent = data.message.content;
+    try {
+      return JSON.parse(rawContent) as LLMParsedResult;
+    } catch (e) {
+      throw new Error(`Failed to parse Ollama JSON. Raw: ${rawContent}`);
+    }
   }
 
   let url = config.endpoint || 'https://api.openai.com/v1/chat/completions';

@@ -7,6 +7,7 @@
 
 // ── API pública principal ─────────────────────
 export { formalize, formalizeWithLLM } from './formalize';
+export type { FormalizeWithLLMOptions, FormalizationLLMResult } from './formalize';
 export { lintNaturalLanguage, DEFAULT_RULES } from './nl-linter';
 export type { NLLinterDiagnostic, NLRule } from './nl-linter';
 export { Autologic } from './autologic';
