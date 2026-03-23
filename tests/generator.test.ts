@@ -89,7 +89,7 @@ describe('ST Emitter', () => {
     expect(code).not.toContain('//');
   });
 
-  it('emite check valid para condicionales', () => {
+  it('does NOT auto-generate check valid for conditional axioms (check valid tests tautology, not argument validity)', () => {
     const formulas: FormulaEntry[] = [{
       formula: 'P -> Q',
       stType: 'axiom',
@@ -105,6 +105,9 @@ describe('ST Emitter', () => {
       formulas,
       detectedPatterns: [],
     });
-    expect(code).toContain('check valid (P -> Q)');
+    // check valid (P -> Q) would fail because P→Q is not a tautology.
+    // Argument validity is proven via `derive`, not `check valid`.
+    expect(code).not.toContain('check valid');
+    expect(code).toContain('axiom r1 = P -> Q');
   });
 });

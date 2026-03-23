@@ -97,7 +97,7 @@ export function emitST(options: EmitOptions): { code: string; diagnostics: Diagn
       lines.push('');
     }
 
-    // Emitir checks
+    // Emitir checks (solo los generados explícitamente por el pipeline)
     for (const check of checks) {
       if (includeComments && check.comment) {
         lines.push(`// ${check.comment}`);
@@ -105,17 +105,11 @@ export function emitST(options: EmitOptions): { code: string; diagnostics: Diagn
       lines.push(`check valid (${check.formula})`);
     }
 
-    // Agregar verificación automática para condicionales
-    const conditionalAxioms = axioms.filter(a => a.formula.includes('->'));
-    if (conditionalAxioms.length > 0 && checks.length === 0) {
-      lines.push('');
-      if (includeComments) {
-        lines.push('// ── Verificación ──────────────────────');
-      }
-      for (const ca of conditionalAxioms) {
-        lines.push(`check valid (${ca.formula})`);
-      }
-    }
+    // NOTE: We no longer auto-generate `check valid` for conditional axioms.
+    // `check valid` tests tautology (true in ALL interpretations), not argument
+    // validity. Contingent conditionals like P→Q are never tautologies, so
+    // auto-checking them always fails and produces misleading output.
+    // Argument validity is already verified by `derive ... from {axioms}`.
   }
 
   // Limpiar líneas en blanco consecutivas
