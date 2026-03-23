@@ -255,10 +255,12 @@ export async function formalizeWithLLM(text: string, options: FormalizeWithLLMOp
       // 3. Traducimos el Árbol JSON a código ST
       const stLines = llmResultToST(parsedAst);
       
-      const generatorInput = stLines.map((line, i) => ({
+      let axiomIdx = 0;
+      let deriveIdx = 0;
+      const generatorInput = stLines.map((line) => ({
           formula: line.formula,
-          stType: line.type,
-          label: line.type === 'axiom' ? `a${i+1}` : `c${i+1}`,
+          stType: line.type === 'derive' ? 'derive' as const : line.type as 'axiom' | 'check',
+          label: line.type === 'axiom' ? `a${++axiomIdx}` : line.type === 'derive' ? `d${++deriveIdx}` : `c${++deriveIdx}`,
           sourceText: '', sourceSentence: 0
       }));
 
