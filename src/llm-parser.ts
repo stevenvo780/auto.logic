@@ -128,7 +128,11 @@ export async function parseTextWithLLM(text: string, profile: LogicProfile, conf
   if (config.provider === 'openwebui') {
     // Open WebUI — OpenAI-compatible endpoint with Bearer auth
     if (!config.endpoint) throw new Error('openwebui provider requires an explicit endpoint URL in LLMConfig.endpoint');
-    const url = config.endpoint;
+    // Auto-append /api/chat/completions if the endpoint is a bare base URL
+    let url = config.endpoint.replace(/\/+$/, '');
+    if (!url.includes('/api/')) {
+      url += '/api/chat/completions';
+    }
     const response = await fetch(url, {
       method: 'POST',
       headers: {
