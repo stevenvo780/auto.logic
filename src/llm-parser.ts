@@ -102,7 +102,7 @@ export async function parseTextWithLLM(text: string, profile: LogicProfile, conf
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: config.model || 'qwen2.5-coder:14b',
+        model: config.model || 'autologic-formalizer',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Formalize this text:\n\n${text}` }
@@ -140,7 +140,7 @@ export async function parseTextWithLLM(text: string, profile: LogicProfile, conf
         'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: config.model || 'qwen2.5-coder:14b',
+        model: config.model || 'autologic-formalizer',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Formalize this text:\n\n${text}` }
