@@ -18,6 +18,7 @@ export const MARKERS_ES: MarkerDefinition[] = [
   { text: 'suponiendo que', role: 'condition', language: 'es', priority: 7 },
   { text: 'supongamos que', role: 'condition', language: 'es', priority: 7 },
   { text: 'en caso de', role: 'condition', language: 'es', priority: 7 },
+  { text: 'cuando', role: 'condition', language: 'es', priority: 6 },
   { text: 'si', role: 'condition', language: 'es', priority: 3 },
 
   // ── Consecuentes / Conclusiones ─────────────────

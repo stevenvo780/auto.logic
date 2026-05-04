@@ -50,7 +50,6 @@ export function splitClauses(sentence: string, language: Language = 'es'): Claus
     return true;
   });
 
-  console.log("Splitting matches:", splittingMatches.map(m=>m.marker.text));
   if (splittingMatches.length === 0) {
     const coordinatedClauses = splitBySimpleCoordinators(sentence, allMatches);
     if (coordinatedClauses.length > 1) {
@@ -260,11 +259,36 @@ function postSplitConditionalClauses(clauses: Clause[]): Clause[] {
       }
     }
 
+    const cuandoSplit = splitCuandoConditionWithoutComma(clause);
+    if (hasCondMarker && cuandoSplit) {
+      const [before, after] = cuandoSplit;
+      result.push({
+        text: cleanClauseText(before),
+        markers: clause.markers,
+        index: reindex++,
+      });
+      result.push({
+        text: cleanClauseText(after),
+        markers: [],
+        index: reindex++,
+      });
+      continue;
+    }
+
     clause.index = reindex++;
     result.push(clause);
   }
 
   return result;
+}
+
+function splitCuandoConditionWithoutComma(clause: Clause): [string, string] | null {
+  if (!clause.markers.some(marker => marker.role === 'condition' && marker.text === 'cuando')) return null;
+  const text = cleanClauseText(clause.text);
+  const match = text.match(/^(.+?)\s+(se\s+(?:genera|generan|produce|producen|provoca|provocan|causa|causan)\b.+)$/iu);
+  if (!match?.[1] || !match[2]) return null;
+  if (match[1].split(/\s+/).length < 2 || match[2].split(/\s+/).length < 2) return null;
+  return [match[1], match[2]];
 }
 
 function postSplitCommaRichClauses(clauses: Clause[]): Clause[] {

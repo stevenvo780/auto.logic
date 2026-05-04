@@ -30,6 +30,7 @@
     "report:long": "npm run build && node scripts/report-long-formalization.mjs",
     "test:watch": "vitest",
     "test:coverage": "NODE_OPTIONS=--max-old-space-size=8192 vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && npm run test"
