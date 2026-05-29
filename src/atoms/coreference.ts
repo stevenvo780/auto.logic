@@ -30,6 +30,66 @@ const AUX_VERBS_EN = new Set([
 ]);
 
 /**
+ * Mapa de raíces irregulares: el stemmer Snowball no unifica verbos con
+ * cambio de raíz (e→ie, o→ue, etc.), así que "llueve" (raíz `lluev`) y
+ * "lloviendo" (raíz `llov`) quedan separados. Normalizamos las raíces más
+ * comunes del español a una forma canónica para que el átomo coincida.
+ *
+ * Sólo cubre lo tratable con un mapa estático. La coreferencia profunda
+ * (p.ej. sinonimia "auto"≈"coche", o nominalización "la lluvia"≈"llueve")
+ * queda DIFERIDA: requiere lexicón semántico, no es tratable con reglas.
+ */
+const IRREGULAR_ROOT_CANON: Record<string, string> = {
+  // llover: llueve/lluev → llov
+  lluev: 'llov',
+  lluv: 'llov',
+  // contar/cuenta, recordar/recuerda, mover/mueve, doler/duele, poder/puede
+  cuent: 'cont',
+  recuerd: 'record',
+  muev: 'mov',
+  duel: 'dol',
+  pued: 'pod',
+  // pensar/piensa, perder/pierde, querer/quiere, sentir/siente, mentir/miente
+  piens: 'pens',
+  pierd: 'perd',
+  quier: 'quer',
+  sient: 'sent',
+  mient: 'ment',
+  // jugar/juega, volver/vuelve, encontrar/encuentra, contar ya cubierto
+  jueg: 'jug',
+  vuelv: 'volv',
+  encuentr: 'encontr',
+  // dormir/duerme, morir/muere
+  duerm: 'dorm',
+  muer: 'mor',
+};
+
+export function canonicalRoot(root: string): string {
+  return IRREGULAR_ROOT_CANON[root] ?? root;
+}
+
+/**
+ * Stems del español sufren sobre-stemming en participios femeninos:
+ * "mojada" → `mojad` mientras que "mojado"/"moja" → `moj`. Esto rompe la
+ * unificación de átomos (LLUEVE vs LLOVIENDO ya lo cubre el mapa irregular;
+ * aquí cubrimos la variante flexiva de participio). Plegamos el residuo
+ * `-ad`/`-id` cuando deja una raíz de ≥3 caracteres y la raíz original
+ * tiene ≥5, evitando colapsar sustantivos como `edad`, `verdad`, `ciudad`
+ * (raíz < 5) o cualquier raíz corta.
+ */
+export function canonicalStem(root: string): string {
+  const r = canonicalRoot(root);
+  if (r.length >= 5 && (r.endsWith('ad') || r.endsWith('id'))) {
+    const folded = r.slice(0, -1); // mojad → moja, cansad → cansa
+    // El stem base de la 3ª persona ("moja") es `moj`; plegamos también la
+    // vocal temática para igualar (moja→moj).
+    const themeless = folded.replace(/[ae]$/, '');
+    return themeless.length >= 3 ? themeless : folded;
+  }
+  return r;
+}
+
+/**
  * Sufijos comunes de gerundio/participio español para normalización.
  * Mapa: sufijo → raíces comunes que produce.
  */
@@ -79,17 +139,27 @@ function normalizeVerbRoot(word: string): string {
  * Combina stems + raíces verbales normalizadas.
  */
 function normalizedBag(text: string, language: Language): Set<string> {
-  const stems = bagOfStems(text, language);
-  
-  // Agregar raíces verbales normalizadas
-  const words = text.toLowerCase().split(/\s+/);
+  const rawStems = bagOfStems(text, language);
+  const stems = new Set<string>();
+  // Canonicalizar raíces irregulares en los stems (sólo español).
+  for (const s of rawStems) {
+    stems.add(language === 'es' ? canonicalRoot(s) : s);
+  }
+
+  // Agregar raíces verbales normalizadas. Limpiamos puntuación adyacente
+  // para que "lloviendo." se reconozca como gerundio (si no, el sufijo no
+  // matchea y la palabra cruda diluye el coeficiente Dice).
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ''));
   const auxVerbs = language === 'es' ? AUX_VERBS_ES : AUX_VERBS_EN;
-  
+
   for (const w of words) {
     if (auxVerbs.has(w) || w.length <= 2) continue;
-    
+
     if (language === 'es') {
-      const root = normalizeVerbRoot(w);
+      const root = canonicalRoot(normalizeVerbRoot(w));
       if (root && root.length > 2) {
         stems.add(root);
       }

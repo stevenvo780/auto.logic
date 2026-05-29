@@ -8,7 +8,7 @@ export { areCoreferent, resolveCoreferenceGroups, diceSimilarity } from './coref
 import type { AtomEntry, AtomStyle, Language, AnalyzedSentence, LogicProfile } from '../types';
 import { extractKeywords, extractSemanticHint, extractSubjectPredicate } from './keyword-extractor';
 import { generateId, generatePredicateId, generateVariableId } from './identifier-gen';
-import { resolveCoreferenceGroups } from './coreference';
+import { resolveCoreferenceGroups, canonicalStem } from './coreference';
 
 /**
  * Extrae átomos proposicionales de oraciones analizadas.
@@ -208,9 +208,20 @@ function shouldKeepSeparate(
     return true;
   }
 
-  const subjectConflict = representative.subject && candidate.subject && representative.subject !== candidate.subject;
-  const predicateConflict = representative.predicate && candidate.predicate && representative.predicate !== candidate.predicate;
-  const objectConflict = representative.object && candidate.object && representative.object !== candidate.object;
+  // Canonicalizamos las raíces antes de comparar para que variantes flexivas
+  // (LLUEVE/LLOVIENDO, CALLE_MOJA/MOJADA_CALLE) no se consideren en conflicto
+  // y la coreferencia previa no se deshaga aquí (BUG-C1).
+  const canon = (s?: string) => (s ? canonicalStem(s) : s);
+  const repSubject = canon(representative.subject);
+  const repPredicate = canon(representative.predicate);
+  const repObject = canon(representative.object);
+  const candSubject = canon(candidate.subject);
+  const candPredicate = canon(candidate.predicate);
+  const candObject = canon(candidate.object);
+
+  const subjectConflict = repSubject && candSubject && repSubject !== candSubject;
+  const predicateConflict = repPredicate && candPredicate && repPredicate !== candPredicate;
+  const objectConflict = repObject && candObject && repObject !== candObject;
 
   const sharedKeywords = representative.keywords.filter(keyword => candidate.keywords.includes(keyword));
 

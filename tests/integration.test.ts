@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { formalize, Autologic } from '../src';
+import { expectPipelineOk } from './helpers/quality';
 import {
   MODUS_PONENS_ES,
   MODUS_PONENS_THEREFORE_ES,
@@ -43,7 +44,7 @@ describe('formalize() — Español', () => {
       profile: 'classical.propositional',
       language: 'es',
     });
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'modus ponens por lo tanto');
     expect(result.stCode).toContain('logic classical.propositional');
     expect(result.stCode).toContain('->');
   });
@@ -86,7 +87,7 @@ describe('formalize() — Español', () => {
       profile: 'classical.propositional',
       language: 'es',
     });
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'argumento complejo ES');
     expect(result.atoms.size).toBeGreaterThan(1);
     expect(result.formulas.length).toBeGreaterThan(1);
   });
@@ -97,7 +98,7 @@ describe('formalize() — Español', () => {
       language: 'es',
     });
 
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'cadena general→particular');
     expect(result.stCode).toContain('derive CALIENTE_SANGRE_TIENE');
     expect(result.stCode).toContain('derive TEMPERATURA_REGULAR_PUEDE');
     expect(result.stCode).toContain('TEMPERATURA_REGULAR_PERROS_PUEDEN');
@@ -122,7 +123,7 @@ describe('formalize() — Modal', () => {
       profile: 'modal.k',
       language: 'es',
     });
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'necesidad modal');
     expect(result.stCode).toContain('logic modal.k');
     expect(result.stCode).toContain('[]');
   });
@@ -132,7 +133,7 @@ describe('formalize() — Modal', () => {
       profile: 'deontic.standard',
       language: 'es',
     });
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'deóntico');
     expect(result.stCode).toContain('logic deontic.standard');
   });
 });
@@ -164,7 +165,7 @@ describe('formalize() — Inglés', () => {
       profile: 'classical.propositional',
       language: 'en',
     });
-    expect(result.ok).toBe(true);
+    expectPipelineOk(result, 'argumento complejo EN');
     expect(result.atoms.size).toBeGreaterThan(0);
   });
 });

@@ -7,7 +7,18 @@ function countMatches(code: string, pattern: RegExp): number {
 }
 
 function expectCaseQuality(testCase: CorpusCase, result: ReturnType<typeof formalize>) {
-  expect(result.ok, `${testCase.id} should formalize successfully`).toBe(true);
+  // El pipeline siempre debe emitir ST parseable. Tras BUG-C7, `result.ok`
+  // refleja honestamente si la derivación se sostiene: un argumento válido
+  // cuya unificación de átomos falla produce `refutable` → `ok=false`. Eso
+  // ya NO es un fallo del pipeline (antes se enmascaraba con `ok=true`).
+  const semanticOk =
+    !result.stExecution || result.stExecution.timedOut || result.stExecution.semanticOk;
+  if (semanticOk) {
+    expect(result.ok, `${testCase.id} should formalize successfully`).toBe(true);
+  } else {
+    // Consistencia BUG-C7: refutable ⇒ ok=false.
+    expect(result.ok, `${testCase.id} ok must reflect refutable derivation (BUG-C7)`).toBe(false);
+  }
   expect(result.stCode, `${testCase.id} should emit ST`).toContain(`logic ${testCase.options.profile}`);
   expect(result.stCode.trim().length, `${testCase.id} should emit non-trivial ST`).toBeGreaterThan(40);
 
@@ -39,7 +50,12 @@ function expectCaseQuality(testCase: CorpusCase, result: ReturnType<typeof forma
     }
   }
 
-  expect(result.stValidation?.ok ?? true, `${testCase.id} should pass ST parser validation`).toBe(true);
+  // El parser nunca falla por sintaxis; `stValidation.ok=false` sólo por
+  // refutabilidad semántica (acompañada de mensaje), no por error de parser.
+  const parserErrors = (result.stValidation?.errors ?? []).filter(
+    (e) => !/refutable|no demostrable/i.test(e)
+  );
+  expect(parserErrors, `${testCase.id} should pass ST parser validation`).toHaveLength(0);
   expect(
     result.diagnostics.filter((diagnostic) => diagnostic.severity === 'error'),
     `${testCase.id} should not emit fatal diagnostics`

@@ -4,7 +4,7 @@
  * Toma texto natural + opciones y produce código ST válido.
  * Pipeline: Segment → Analyze → Extract Atoms → Build Formulas → Emit ST → Validate
  */
-import type { FormalizeOptions, FormalizationResult, Diagnostic, LogicProfile, Language, AtomStyle } from './types';
+import type { FormalizeOptions, FormalizationResult, Diagnostic, LogicProfile, Language, AtomStyle, STExecutionResult } from './types';
 import { segment } from './segmenter';
 import { analyzeDiscourse } from './discourse';
 import { extractAtoms } from './atoms';
@@ -141,9 +141,7 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
 
     // ── 6. Validación (opcional) ────────────────
     let stValidation: { ok: boolean; errors: string[] } | undefined;
-    let stExecution:
-      | { ok: boolean; exitCode: number; timedOut: boolean; durationMs: number; errors: string[]; resultStatuses: string[] }
-      | undefined;
+    let stExecution: STExecutionResult | undefined;
     if (opts.validateOutput) {
       stValidation = validateST(code);
       diagnostics.push(...validationToDiagnostics(stValidation));
@@ -151,11 +149,31 @@ export function formalize(text: string, options: FormalizeOptions = {}): Formali
       if (stValidation.ok) {
         stExecution = executeST(code);
         diagnostics.push(...executionToDiagnostics(stExecution));
+
+        // BUG-C7: si la ejecución corrió sin errores de runtime pero la
+        // derivación es refutable/no demostrable, la validación NO es ok.
+        // Antes esto se perdía en silencio (formalizeOk:true con derive
+        // refutable). No marcamos error para timeouts (resultado incompleto,
+        // no incorrecto).
+        if (!stExecution.timedOut && !stExecution.semanticOk) {
+          stValidation = {
+            ok: false,
+            errors: [
+              ...stValidation.errors,
+              `Derivación refutable o no demostrable (${stExecution.failingStatuses.join(', ') || 'sin conclusión'})`,
+            ],
+          };
+        }
       }
     }
 
+    // `ok` refleja: sin diagnósticos de error Y validez semántica de la
+    // ejecución (cuando hubo ejecución no abortada por timeout).
+    const semanticOk =
+      !stExecution || stExecution.timedOut || stExecution.semanticOk;
+
     return {
-      ok: diagnostics.every(d => d.severity !== 'error'),
+      ok: diagnostics.every(d => d.severity !== 'error') && semanticOk,
       stCode: code,
       analysis,
       atoms,
@@ -277,18 +295,31 @@ export async function formalizeWithLLM(text: string, options: FormalizeWithLLMOp
       baseResult.diagnostics.push(...emitDiags);
 
       if (opts.validateOutput) {
-          const stValidation = validateST(stCode);
-          baseResult.stValidation = stValidation;
+          let stValidation = validateST(stCode);
           baseResult.diagnostics.push(...validationToDiagnostics(stValidation));
 
           if (stValidation.ok) {
               const stExecution = executeST(stCode);
               baseResult.stExecution = stExecution;
               baseResult.diagnostics.push(...executionToDiagnostics(stExecution));
+
+              // BUG-C7: validez semántica también en la ruta LLM.
+              if (!stExecution.timedOut && !stExecution.semanticOk) {
+                  stValidation = {
+                      ok: false,
+                      errors: [
+                          ...stValidation.errors,
+                          `Derivación refutable o no demostrable (${stExecution.failingStatuses.join(', ') || 'sin conclusión'})`,
+                      ],
+                  };
+              }
           }
+          baseResult.stValidation = stValidation;
       }
 
-      const allValid = baseResult.diagnostics.every(d => d.severity !== 'error');
+      const semanticOk =
+          !baseResult.stExecution || baseResult.stExecution.timedOut || baseResult.stExecution.semanticOk;
+      const allValid = baseResult.diagnostics.every(d => d.severity !== 'error') && semanticOk;
       baseResult.ok = allValid;
       return baseResult;
 

@@ -67,8 +67,18 @@ export interface FormalizationResult {
 }
 
 export interface STExecutionResult {
-  /** true si ST se ejecutó sin errores de parser/runtime */
+  /** true si ST se ejecutó sin errores de parser/runtime (exitCode 0) */
   ok: boolean;
+  /**
+   * true si TODAS las derivaciones/pruebas/checks ejecutados se sostienen
+   * lógicamente (ningún `refutable`/`unprovable`/`invalid`/`countersat`).
+   * Distinto de `ok`: una corrida puede terminar sin errores de runtime
+   * (`ok=true`) pero con una derivación refutable (`semanticOk=false`).
+   * Ver BUG-C7: antes esto se perdía en silencio.
+   */
+  semanticOk: boolean;
+  /** Estados que indican que una afirmación NO se sostuvo */
+  failingStatuses: string[];
   /** Código de salida del runtime ST */
   exitCode: number;
   /** true si la ejecución fue abortada por timeout */
