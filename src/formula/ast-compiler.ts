@@ -14,16 +14,19 @@ export function compileAST(node: LogicNode): string {
     case 'Connective': {
       const left = compileAST(node.left);
       if (node.operator === 'NOT') {
-        const inner = node.left.type === 'Connective' || node.left.type === 'Quantifier' ? `(${left})` : left;
+        const inner = node.left.type === 'Connective' || node.left.type === 'Quantifier' || node.left.type === 'TemporalBinary' ? `(${left})` : left;
         return `!${inner}`;
       }
       const right = compileAST(node.right!);
+      const wrap = (n: LogicNode, s: string): string =>
+        (n.type === 'Connective' && n.operator !== 'NOT') || n.type === 'Quantifier' || n.type === 'TemporalBinary' ? `(${s})` : s;
       switch (node.operator) {
-        case 'AND': return `${left} & ${right}`;
-        case 'OR': return `${left} | ${right}`;
-        case 'IMPLIES': return `${left} -> ${right}`;
-        case 'IFF': return `${left} <-> ${right}`;
+        case 'AND': return `${wrap(node.left, left)} & ${wrap(node.right!, right)}`;
+        case 'OR': return `${wrap(node.left, left)} | ${wrap(node.right!, right)}`;
+        case 'IMPLIES': return `${wrap(node.left, left)} -> ${wrap(node.right!, right)}`;
+        case 'IFF': return `${wrap(node.left, left)} <-> ${wrap(node.right!, right)}`;
       }
+      break;
     }
     case 'Quantifier': {
       const vars = node.variables;
@@ -50,7 +53,7 @@ export function compileAST(node: LogicNode): string {
     }
     case 'Modal': {
       const child = compileAST(node.child);
-      const inner = node.child.type === 'Connective' ? `(${child})` : child;
+      const inner = node.child.type === 'Connective' || node.child.type === 'Quantifier' || node.child.type === 'TemporalBinary' ? `(${child})` : child;
       switch(node.operator) {
         case 'K': return node.agent ? `K_${node.agent}(${inner})` : `K(${inner})`;
         case 'B': return node.agent ? `B_${node.agent}(${inner})` : `B(${inner})`;
@@ -68,7 +71,9 @@ export function compileAST(node: LogicNode): string {
     case 'TemporalBinary': {
       const left = compileAST(node.left);
       const right = compileAST(node.right);
-      if (node.operator === 'UNTIL') return `${left} U ${right}`;
+      const wrapTB = (n: LogicNode, s: string): string =>
+        (n.type === 'Connective' && n.operator !== 'NOT') || n.type === 'Quantifier' || n.type === 'TemporalBinary' ? `(${s})` : s;
+      if (node.operator === 'UNTIL') return `${wrapTB(node.left, left)} U ${wrapTB(node.right, right)}`;
       return '';
     }
     case 'Math': {

@@ -51,13 +51,20 @@ const FAILING_STATUSES = new Set([
  *
  * `invalid` se considera fallido SALVO que el código contenga un
  * `countermodel`/`refute`, donde `invalid` es el resultado correcto.
+ *
+ * `unknown` (st-lang 4.x) se considera fallido cuando el código contiene
+ * un `derive`/`prove`: significa que la conclusión no es derivable de las
+ * premisas. Para `check`/`countermodel` se tolera porque puede reflejar
+ * incomplitud del solucionador, no una violación semántica.
  */
 function computeFailingStatuses(resultStatuses: string[], code: string): string[] {
   const expectsInvalid = /\b(countermodel|refute|falsify)\b/i.test(code);
+  const expectsEntailment = /\b(derive|prove)\b/i.test(code);
   return resultStatuses.filter((status) => {
     const s = status.toLowerCase();
     if (FAILING_STATUSES.has(s)) return true;
     if (s === 'invalid' && !expectsInvalid) return true;
+    if (s === 'unknown' && expectsEntailment) return true;
     return false;
   });
 }
@@ -203,15 +210,15 @@ process.stdout.write(JSON.stringify({
       errors: parsed.errors,
       resultStatuses: parsed.resultStatuses,
     };
-  } catch {
+  } catch (err) {
     return {
-      ok: true,
-      semanticOk: true,
+      ok: false,
+      semanticOk: false,
       failingStatuses: [],
-      exitCode: 0,
+      exitCode: -1,
       timedOut: false,
       durationMs: Date.now() - startedAt,
-      errors: [],
+      errors: [err instanceof Error ? err.message : 'Error inesperado al ejecutar ST'],
       resultStatuses: [],
     };
   }
