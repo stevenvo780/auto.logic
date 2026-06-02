@@ -56,7 +56,11 @@ describe('Todos los perfiles lógicos', () => {
   for (const { profile, text } of PROFILES) {
     it(`genera ST válido para ${profile}`, () => {
       const result = formalize(text, { profile, language: 'es' });
-      expect(result.ok).toBe(true);
+      // ok refleja validez semántica real (C7) y varía por perfil/entrada
+      // (aristotelian.syllogistic genera ST válido pero una afirmación no se
+      // sostiene). La validez se cubre en formalize-semantics.test.ts; aquí
+      // se verifica que se GENERA ST válido.
+      expect(typeof result.ok).toBe('boolean');
       expect(result.stCode).toContain(`logic ${profile}`);
       expect(result.stCode.length).toBeGreaterThan(20);
       expect(result.atoms.size).toBeGreaterThan(0);
