@@ -62,6 +62,7 @@ describe.skipIf(!LLM_ENABLED)('Propositional exercises — LLM (async)', () => {
   for (const ex of PROPOSITIONAL_EXERCISES) {
     it(
       `[${ex.label}] ${ex.id} — ${ex.description}`,
+      { timeout: 30_000 },
       async () => {
         const t0 = Date.now();
         const result = await formalizeWithLLM(ex.text, {
@@ -98,7 +99,6 @@ describe.skipIf(!LLM_ENABLED)('Propositional exercises — LLM (async)', () => {
           `${ex.id} should not emit fatal diagnostics`,
         ).toHaveLength(0);
       },
-      { timeout: 30_000 },
     );
   }
 });
