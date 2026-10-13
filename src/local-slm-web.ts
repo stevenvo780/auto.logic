@@ -26,15 +26,31 @@ Be precise. Return ONLY the raw JSON object. No markdown, no explanation, no cod
  * handling trailing garbage that the model may produce after the JSON.
  */
 function extractFirstJSON(text: string): string {
+  const jsonStart = text.indexOf('{');
+  if (jsonStart === -1) return text;
+
   let braceCount = 0;
-  let jsonStart = -1;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === '{') {
-      if (jsonStart === -1) jsonStart = i;
+  let inString = false;
+  let escaped = false;
+  for (let i = jsonStart; i < text.length; i++) {
+    const char = text[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+    } else if (char === '{') {
       braceCount++;
-    } else if (text[i] === '}') {
+    } else if (char === '}') {
       braceCount--;
-      if (braceCount === 0 && jsonStart !== -1) {
+      if (braceCount === 0) {
         return text.substring(jsonStart, i + 1);
       }
     }
