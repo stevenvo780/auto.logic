@@ -56,11 +56,24 @@ function extractFirstJSON(raw: string): string {
   let cleaned = raw.replace(/^```json?\s*/m, '').replace(/```\s*$/m, '').trim();
   let braceCount = 0;
   let jsonStart = -1;
+  let inString = false;
+  let escaped = false;
   for (let i = 0; i < cleaned.length; i++) {
-    if (cleaned[i] === '{') {
+    const char = cleaned[i];
+    if (jsonStart === -1 && char !== '{') continue;
+    // Braces inside JSON strings are text, including after escaped quotes or backslashes.
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+    } else if (char === '{') {
       if (jsonStart === -1) jsonStart = i;
       braceCount++;
-    } else if (cleaned[i] === '}') {
+    } else if (char === '}') {
       braceCount--;
       if (braceCount === 0 && jsonStart !== -1) {
         return cleaned.substring(jsonStart, i + 1);
